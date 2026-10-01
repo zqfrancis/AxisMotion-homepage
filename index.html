@@ -59,11 +59,6 @@
   }
   .info { flex: 1; min-width: 0; }
   .name { font-size: 19px; font-weight: 700; }
-  .ver {
-    display: inline-block; margin-left: 8px; padding: 2px 8px;
-    font-size: 11px; font-weight: 700; border-radius: 999px;
-    background: rgba(255,255,255,.1); color: #aeb9d6; vertical-align: 2px;
-  }
   .desc { margin-top: 5px; font-size: 13.5px; color: #8b98b8; line-height: 1.5; }
   .go { font-size: 22px; color: #5b6b8c; flex: none; }
   footer { text-align: center; margin-top: 30px; color: #5b6b8c; font-size: 13px; line-height: 1.8; }
@@ -88,23 +83,23 @@
 /* AxisMotion 总页：所有作品的唯一入口。新增作品时，只需往 APPS 数组加一行。 */
 
 const APPS = [
-  { img: 'thumbs/breakout.webp', zh: '打砖块', en: 'Breakout', ver: 'v0.4',
+  { img: 'thumbs/breakout.webp', zh: '打砖块', en: 'Breakout',
     zhDesc: '经典打砖块：掉落道具、连击倍率、多血量砖块',
     enDesc: 'Classic breakout: power-ups, combo multiplier, armored bricks',
     url: 'https://zqfrancis.github.io/Breakout/', accent: '#4da3ff' },
-  { img: 'thumbs/wazalab.webp', zh: 'WazaLab', en: 'WazaLab', ver: 'v0.11',
+  { img: 'thumbs/wazalab.webp', zh: 'WazaLab', en: 'WazaLab',
     zhDesc: '空手道动作教学 + 对战：每个踢击都有分解讲解',
     enDesc: 'Karate technique lessons + sparring, every kick broken down',
     url: 'https://zqfrancis.github.io/WazaLab/', accent: '#ffd32a' },
-  { img: 'thumbs/sketchyskier.webp', zh: 'Sketchy Skier', en: 'Sketchy Skier', ver: 'v0.10',
+  { img: 'thumbs/sketchyskier.webp', zh: 'Sketchy Skier', en: 'Sketchy Skier',
     zhDesc: '画个小人去滑雪：跳台、转体、落地评分',
     enDesc: 'Draw your skier: hit the jump, spin, stick the landing',
     url: 'https://zqfrancis.github.io/SketchySkier/', accent: '#2ed573' },
-  { img: 'thumbs/formbuddy.webp', zh: 'FormBuddy', en: 'FormBuddy', ver: '',
+  { img: 'thumbs/formbuddy.webp', zh: 'FormBuddy', en: 'FormBuddy',
     zhDesc: '动作分析 App',
     enDesc: 'Motion analysis app',
     url: 'https://zqfrancis.github.io/FormBuddy/', accent: '#ff9f43' },
-  { img: 'thumbs/flappy.webp', zh: 'Flappy Bird', en: 'Flappy Bird', ver: '',
+  { img: 'thumbs/flappy.webp', zh: 'Flappy Bird', en: 'Flappy Bird',
     zhDesc: 'Flappy Bird',
     enDesc: 'Flappy Bird',
     url: 'https://zqfrancis.github.io/maodou-Flappy-Bird/', accent: '#22d3ee' },
@@ -131,8 +126,7 @@ function render() {
     el.style.setProperty('--accent', a.accent);
     el.innerHTML =
       '<img class="thumb" src="' + a.img + '" alt="">' +
-      '<div class="info"><div class="name">' + (lang === 'zh' ? a.zh : a.en) +
-        (a.ver ? '<span class="ver">' + a.ver + '</span>' : '') + '</div>' +
+      '<div class="info"><div class="name">' + (lang === 'zh' ? a.zh : a.en) + '</div>' +
       '<div class="desc">' + (lang === 'zh' ? a.zhDesc : a.enDesc) + '</div></div>' +
       '<div class="go">›</div>';
     grid.appendChild(el);
