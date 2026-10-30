@@ -184,13 +184,13 @@ const APPS = [
 const T = {
   zh: { subtitle: '第一人称世界：走到一间房子，就能走进一个应用',
     menu: '应用列表', enter: '进入', hint: '点击画面锁定鼠标 · WASD 移动 · Shift 加速 · 靠近房子按 E 进入',
-    start: '欢迎来到 AxisMotion 的世界。<br>这里的每一间房子，都是一个我做的游戏或应用。<br>走过去，推门进去玩。',
+    start: '欢迎来到 AxisMotion 的世界。<br>这里的每一间房子，都是一个我做的游戏或应用。<br>走过去，推门进去玩。<br>往北走，还有魔法城堡、跨谷高架桥和一列会跑的魔法列车，湖在东边，群山在远处。',
     startBtn: '进入世界', startMenu: '不想走路？直接看应用列表',
     menuTitle: 'AxisMotion 应用列表', classic: '经典列表版（原来那页）', close: '回到世界',
     near: '走进了', nGl: '这个浏览器不支持 3D，试试换个现代浏览器，或去看经典列表版。' },
   en: { subtitle: 'First-person world: walk up to a house to enter an app',
     menu: 'App list', enter: 'Enter', hint: 'Click to lock mouse · WASD to move · Shift to run · Press E near a house',
-    start: 'Welcome to the AxisMotion world.<br>Every house here is a game or app I made.<br>Walk up and step inside.',
+    start: 'Welcome to the AxisMotion world.<br>Every house here is a game or app I made.<br>Walk up and step inside.<br>Head north for the magic castle, the viaduct and a moving magic train, with a lake to the east and mountains all around.',
     startBtn: 'Enter the world', startMenu: 'Skip walking, show the app list',
     menuTitle: 'AxisMotion apps', classic: 'Classic list page', close: 'Back to the world',
     near: 'You are near', nGl: 'This browser does not support 3D. Try a modern browser, or use the classic list page.' },
@@ -213,7 +213,7 @@ renderer.setSize(innerWidth, innerHeight);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb, 60, 170);
+scene.fog = new THREE.Fog(0x87ceeb, 70, 230);
 
 const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.1, 300);
 camera.rotation.order = 'YXZ';
@@ -230,7 +230,7 @@ scene.add(sun);
 const mat = (c, extra) => new THREE.MeshLambertMaterial(Object.assign({ color: c }, extra || {}));
 
 /* 地面 / 广场 / 小路 */
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), mat(0x5da83a));
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), mat(0x5da83a));
 ground.rotation.x = -Math.PI / 2;
 scene.add(ground);
 
@@ -309,10 +309,157 @@ for (let i = 0; i < 30; i++) {
   const a = rnd() * Math.PI * 2, r = 38 + rnd() * 50;
   const x = Math.cos(a) * r, z = Math.sin(a) * r;
   if (z > -38 && z < 22 && Math.abs(x) < 48) continue; // 房子街和广场留空
+  if (Math.abs(x) < 24 && z > -95 && z < -62) continue; // 魔法城堡留空
+  if (Math.hypot(x - 58, z - 15) < 24) continue; // 湖留空
+  if (Math.abs(z + 60) < 8 && Math.abs(x) < 78) continue; // 高架桥留空
   tree(x, z);
   if (i % 4 === 0) {
     const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.8 + rnd(), 0), mat(0x9aa0a6));
     rock.position.set(x + 4, 0.5, z + 3); scene.add(rock);
+  }
+}
+
+/* ============ 魔法区：城堡 / 湖 / 群山 / 高架桥 / 列车（原创低模造型） ============ */
+const EXTRA_BOXES = [];
+const CIRCLES = [];
+
+// ---- 湖（东边） ----
+const LAKE = { x: 58, z: 15, r: 18 };
+const rim = new THREE.Mesh(new THREE.CircleGeometry(LAKE.r + 1.5, 40), mat(0xd9c08a));
+rim.rotation.x = -Math.PI / 2; rim.position.set(LAKE.x, 0.04, LAKE.z); scene.add(rim);
+const water = new THREE.Mesh(new THREE.CircleGeometry(LAKE.r, 40),
+  new THREE.MeshLambertMaterial({ color: 0x2b6cb0, transparent: true, opacity: 0.92 }));
+water.rotation.x = -Math.PI / 2; water.position.set(LAKE.x, 0.09, LAKE.z); scene.add(water);
+CIRCLES.push(LAKE);
+
+// ---- 群山（远景） ----
+for (let i = 0; i < 12; i++) {
+  const a = (i / 12) * Math.PI * 2 + 0.3;
+  const r = 135 + (i % 3) * 12, h = 30 + (i % 4) * 6, br = 20 + (i % 3) * 5;
+  const x = Math.cos(a) * r, z = Math.sin(a) * r;
+  const m = new THREE.Mesh(new THREE.ConeGeometry(br, h, 7), mat(0x6b7f99));
+  m.position.set(x, h / 2 - 1, z); scene.add(m);
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(br * 0.34, h * 0.3, 7), mat(0xffffff));
+  cap.position.set(x, h * 0.86 - 1, z); scene.add(cap);
+}
+for (let i = 0; i < 6; i++) { // 近处绿丘
+  const a = (i / 6) * Math.PI * 2 + 1.1, r = 108;
+  const hill = new THREE.Mesh(new THREE.ConeGeometry(16, 12, 8), mat(0x4c9440));
+  hill.position.set(Math.cos(a) * r, 5, Math.sin(a) * r); scene.add(hill);
+}
+
+// ---- 魔法城堡（北边山坡上） ----
+function makeCastleSign() {
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 256;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#4a3b28'; g.fillRect(0, 0, 512, 256);
+  g.strokeStyle = '#e8c48a'; g.lineWidth = 10; g.strokeRect(12, 12, 488, 232);
+  g.fillStyle = '#fff'; g.textAlign = 'center';
+  g.font = 'bold 64px sans-serif';
+  g.fillText(lang === 'zh' ? '魔法城堡' : 'Magic Castle', 256, 108);
+  g.font = '28px sans-serif'; g.fillStyle = '#ffd32a';
+  g.fillText(lang === 'zh' ? 'Magic Castle' : '魔法城堡', 256, 162);
+  g.font = 'bold 30px sans-serif'; g.fillStyle = '#fff';
+  g.fillText(lang === 'zh' ? '魔法世界地标' : 'Landmark of the magic world', 256, 212);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return tex;
+}
+const castle = new THREE.Group();
+const stone = 0x9a8f7d, spireCol = 0x3a4a6b;
+const cHill = new THREE.Mesh(new THREE.CylinderGeometry(24, 30, 4, 10), mat(0x5d7a45));
+cHill.position.y = 2; castle.add(cHill);
+const keep = new THREE.Mesh(new THREE.BoxGeometry(16, 13, 11), mat(stone));
+keep.position.y = 4 + 6.5; castle.add(keep);
+const hall = new THREE.Mesh(new THREE.BoxGeometry(9, 8, 17), mat(stone));
+hall.position.set(-12, 4 + 4, 1); castle.add(hall);
+function tower(x, z, h, r) {
+  const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r + 0.3, h, 10), mat(stone));
+  t.position.set(x, 4 + h / 2, z); castle.add(t);
+  const sp = new THREE.Mesh(new THREE.ConeGeometry(r + 0.6, 6, 10), mat(spireCol));
+  sp.position.set(x, 4 + h + 3, z); castle.add(sp);
+}
+tower(-8, -5, 17, 2.4); tower(8, -5, 20, 2.4); tower(-8, 5, 14, 2.1); tower(8, 5, 16, 2.1);
+tower(0, -5, 24, 2.6); tower(-13, 1, 11, 1.9);
+const winMat = new THREE.MeshBasicMaterial({ color: 0xffd76a });
+for (let i = 0; i < 18; i++) {
+  const w = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 0.15), winMat);
+  w.position.set(-6 + (i % 6) * 2.4, 7.5 + Math.floor(i / 6) * 3.2, 5.55); castle.add(w);
+}
+const gate = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.6, 0.3), mat(0x3a2c1c));
+gate.position.set(0, 4 + 1.8, 5.6); castle.add(gate);
+const cSignMat = new THREE.MeshBasicMaterial({ map: makeCastleSign(), side: THREE.DoubleSide });
+signMats.push({ castle: true, mat: cSignMat });
+const cBoard = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 3.2), cSignMat);
+cBoard.position.set(0, 3.4, 9.5); castle.add(cBoard);
+for (const px of [-2.8, 2.8]) {
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.2, 8), mat(0x5a3a1e));
+  post.position.set(px, 1.1, 9.5); castle.add(post);
+}
+castle.position.set(0, 0, -78);
+scene.add(castle);
+EXTRA_BOXES.push({ x: 0, z: -78, hx: 15, hz: 11 });
+
+// ---- 高架桥 + 魔法列车（东西向，横在城堡前方） ----
+const VIA_Z = -60;
+const deck = new THREE.Mesh(new THREE.BoxGeometry(150, 1.2, 4.5), mat(0x8a8578));
+deck.position.set(0, 5, VIA_Z); scene.add(deck);
+for (const rx of [-0.9, 0.9]) {
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(150, 0.18, 0.18), mat(0x3c3c3c));
+  rail.position.set(0, 5.7, VIA_Z + rx); scene.add(rail);
+}
+for (let x = -66; x <= 66; x += 12) {
+  const p = new THREE.Mesh(new THREE.BoxGeometry(2.6, 5, 3.6), mat(0x7d7869));
+  p.position.set(x, 2.5, VIA_Z); scene.add(p);
+  EXTRA_BOXES.push({ x, z: VIA_Z, hx: 1.7, hz: 2.2 });
+}
+const train = new THREE.Group();
+const loco = new THREE.Group();
+const lb = new THREE.Mesh(new THREE.BoxGeometry(6.5, 2.4, 2.6), mat(0x1c1c22));
+lb.position.y = 1.2; loco.add(lb);
+const cab = new THREE.Mesh(new THREE.BoxGeometry(2, 2.2, 2.6), mat(0x1c1c22));
+cab.position.set(-2.4, 3.2, 0); loco.add(cab);
+const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 1.4, 10), mat(0x1c1c22));
+chimney.position.set(2.8, 3.1, 0); loco.add(chimney);
+const stripe = new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.4, 2.7), mat(0xa31616));
+stripe.position.y = 0.5; loco.add(stripe);
+train.add(loco);
+[0x7a1f1f, 0x7a1f1f, 0x5a2a1a].forEach((c, i) => {
+  const car = new THREE.Group();
+  const b = new THREE.Mesh(new THREE.BoxGeometry(5.2, 2.4, 2.6), mat(c));
+  b.position.y = 1.2; car.add(b);
+  const strip = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.8, 2.7), mat(0xf3e3c0));
+  strip.position.y = 1.6; car.add(strip);
+  car.position.x = -6.4 - i * 6.2; train.add(car);
+});
+train.position.set(-60, 5.7, VIA_Z);
+scene.add(train);
+let trainDir = 1, trainX = -60;
+const smokeGeo = new THREE.SphereGeometry(0.55, 8, 8);
+const puffs = [];
+for (let i = 0; i < 14; i++) {
+  const m = new THREE.Mesh(smokeGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 }));
+  m.visible = false; scene.add(m);
+  puffs.push({ mesh: m, age: 0, active: false });
+}
+let puffTimer = 0, puffIdx = 0;
+function updateTrain(dt) {
+  trainX += trainDir * 9 * dt;
+  if (trainX > 62) { trainX = 62; trainDir = -1; train.rotation.y = Math.PI; }
+  if (trainX < -62) { trainX = -62; trainDir = 1; train.rotation.y = 0; }
+  train.position.x = trainX;
+  puffTimer -= dt;
+  if (puffTimer <= 0) {
+    puffTimer = 0.14;
+    const p = puffs[puffIdx]; puffIdx = (puffIdx + 1) % puffs.length;
+    p.active = true; p.age = 0; p.mesh.visible = true;
+    p.mesh.position.set(trainX + trainDir * 2.8, 9.6, VIA_Z);
+  }
+  for (const p of puffs) {
+    if (!p.active) continue;
+    p.age += dt;
+    if (p.age > 2.2) { p.active = false; p.mesh.visible = false; continue; }
+    p.mesh.position.y += 1.6 * dt;
+    const s = 1 + p.age * 1.4; p.mesh.scale.set(s, s, s);
+    p.mesh.material.opacity = 0.65 * (1 - p.age / 2.2);
   }
 }
 
@@ -389,6 +536,21 @@ function collide(p) {
       else p.z = h.z + Math.sign(dz || 1) * (h.hz + 0.6);
     }
   }
+  for (const b of EXTRA_BOXES) {
+    const dx = p.x - b.x, dz = p.z - b.z;
+    if (Math.abs(dx) < b.hx + 0.6 && Math.abs(dz) < b.hz + 0.6) {
+      const px = b.hx + 0.6 - Math.abs(dx), pz = b.hz + 0.6 - Math.abs(dz);
+      if (px < pz) p.x = b.x + Math.sign(dx || 1) * (b.hx + 0.6);
+      else p.z = b.z + Math.sign(dz || 1) * (b.hz + 0.6);
+    }
+  }
+  for (const c of CIRCLES) {
+    const dx = p.x - c.x, dz = p.z - c.z, d = Math.hypot(dx, dz);
+    if (d < c.r + 0.6) {
+      if (d < 0.001) p.z = c.z + c.r + 0.6;
+      else { p.x = c.x + dx / d * (c.r + 0.6); p.z = c.z + dz / d * (c.r + 0.6); }
+    }
+  }
   p.x = Math.max(-95, Math.min(95, p.x));
   p.z = Math.max(-95, Math.min(95, p.z));
 }
@@ -427,6 +589,7 @@ function loop(now) {
     promptText.textContent = T[lang].near + ' ' + (lang === 'zh' ? nearHouse.app.zh : nearHouse.app.en);
     promptEl.classList.add('show');
   } else promptEl.classList.remove('show');
+  updateTrain(dt);
   renderer.render(scene, camera);
 }
 requestAnimationFrame(loop);
@@ -465,7 +628,7 @@ function applyLang() {
   cl.innerHTML = '<b>' + t.classic + '</b>';
   list.appendChild(cl);
   for (const s of signMats) {
-    s.mat.map = makeSignTexture(s.app);
+    s.mat.map = s.castle ? makeCastleSign() : makeSignTexture(s.app);
     s.mat.needsUpdate = true;
   }
 }
