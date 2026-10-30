@@ -77,20 +77,20 @@
   .bigbtn:active { transform: scale(.96); }
   .overlay a { color: #9ec2ff; font-size: 14px; margin-top: 18px; }
   /* menu */
-  #menu {
+  #menu, #selectPanel {
     position: fixed; inset: 0; z-index: 20; display: none;
     background: rgba(10,16,32,.92); overflow-y: auto; padding: 24px 18px 40px;
   }
-  #menu.show { display: block; }
-  #menu h2 { text-align: center; font-size: 24px; margin: 8px 0 18px; }
-  #menu .mcard {
+  #menu.show, #selectPanel.show { display: block; }
+  #menu h2, #selectPanel h2 { text-align: center; font-size: 24px; margin: 8px 0 18px; }
+  #menu .mcard, #selectPanel .mcard {
     display: block; max-width: 520px; margin: 0 auto 12px; padding: 16px 18px;
     border-radius: 16px; background: rgba(255,255,255,.07);
     border: 1px solid rgba(255,255,255,.12); color: #fff; text-decoration: none;
   }
-  #menu .mcard b { font-size: 18px; }
-  #menu .mcard span { display: block; margin-top: 4px; font-size: 13.5px; color: #9fb0d0; line-height: 1.5; }
-  #menuClose {
+  #menu .mcard b, #selectPanel .mcard b { font-size: 18px; }
+  #menu .mcard span, #selectPanel .mcard span { display: block; margin-top: 4px; font-size: 13.5px; color: #9fb0d0; line-height: 1.5; }
+  #menuClose, #selectClose {
     display: block; margin: 22px auto 0; cursor: pointer;
     border: 1px solid rgba(255,255,255,.4); background: transparent; color: #fff;
     border-radius: 999px; padding: 10px 30px; font-size: 15px; font-weight: 700;
@@ -145,6 +145,12 @@
   <button id="menuClose"></button>
 </div>
 
+<div id="selectPanel">
+  <h2 id="selectTitle"></h2>
+  <div id="selectList"></div>
+  <button id="selectClose"></button>
+</div>
+
 <script type="module">
 'use strict';
 import * as THREE from 'three';
@@ -182,18 +188,18 @@ const APPS = [
 ];
 
 const T = {
-  zh: { subtitle: '第一人称世界：走到一间房子，就能走进一个应用',
-    menu: '应用列表', enter: '进入', hint: '点击画面锁定鼠标 · WASD 移动 · Shift 加速 · 靠近房子按 E 进入',
-    start: '欢迎来到 AxisMotion 的世界。<br>这里的每一间房子，都是一个我做的游戏或应用。<br>走过去，推门进去玩。<br>往北走，还有魔法城堡、跨谷高架桥和一列会跑的魔法列车，湖在东边，群山在远处。',
+  zh: { subtitle: '第一人称世界：三间房子，推门进去各有天地',
+    menu: '应用列表', hint: '点击画面锁定鼠标 · WASD 移动 · Shift 加速 · 靠近门口按 E',
+    start: '欢迎来到 AxisMotion 的世界。<br>现在有三间可以走进去的房子：游戏屋、道馆、琴房。<br>推门进去，里面各有天地。<br>往北走，还有魔法城堡、跨谷高架桥和一列会跑的魔法列车，湖在东边，群山在远处。',
     startBtn: '进入世界', startMenu: '不想走路？直接看应用列表',
     menuTitle: 'AxisMotion 应用列表', classic: '经典列表版（原来那页）', close: '回到世界',
-    near: '走进了', nGl: '这个浏览器不支持 3D，试试换个现代浏览器，或去看经典列表版。' },
-  en: { subtitle: 'First-person world: walk up to a house to enter an app',
-    menu: 'App list', enter: 'Enter', hint: 'Click to lock mouse · WASD to move · Shift to run · Press E near a house',
-    start: 'Welcome to the AxisMotion world.<br>Every house here is a game or app I made.<br>Walk up and step inside.<br>Head north for the magic castle, the viaduct and a moving magic train, with a lake to the east and mountains all around.',
+    selectTitle: '选个游戏玩', nGl: '这个浏览器不支持 3D，试试换个现代浏览器，或去看经典列表版。' },
+  en: { subtitle: 'First-person world: three houses you can actually walk into',
+    menu: 'App list', hint: 'Click to lock mouse · WASD to move · Shift to run · Press E near a door',
+    start: 'Welcome to the AxisMotion world.<br>Three houses are open now: the Game House, the Dojo, and the Piano Room.<br>Push the door and step inside.<br>Head north for the magic castle, the viaduct and a moving magic train, with a lake to the east and mountains all around.',
     startBtn: 'Enter the world', startMenu: 'Skip walking, show the app list',
     menuTitle: 'AxisMotion apps', classic: 'Classic list page', close: 'Back to the world',
-    near: 'You are near', nGl: 'This browser does not support 3D. Try a modern browser, or use the classic list page.' },
+    selectTitle: 'Pick a game', nGl: 'This browser does not support 3D. Try a modern browser, or use the classic list page.' },
 };
 let lang = localStorage.getItem('axismotion-lang') || 'zh';
 const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -244,7 +250,7 @@ path.rotation.x = -Math.PI / 2;
 path.position.set(0, 0.03, -7);
 scene.add(path);
 
-/* 房子：沿 z=-28 一字排开，门朝广场(+Z) */
+/* 三间房子：沿 z=-28 一字排开，门朝广场(+Z)，都能推门走进去 */
 const HOUSES = [];
 const signMats = []; // 语言切换时重画
 function makeSignTexture(app) {
@@ -264,33 +270,48 @@ function makeSignTexture(app) {
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
-function buildHouse(app, x) {
+function buildHouse(h, x) {
   const z = -28, grp = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(7, 4, 5), mat(0xfff6e8));
-  body.position.y = 2; grp.add(body);
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(5.4, 3, 4), mat(app.color));
-  roof.rotation.y = Math.PI / 4; roof.position.y = 5.5; grp.add(roof);
-  const door = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.5, 0.25), mat(0x5a3a1e));
-  door.position.set(0, 1.25, 2.6); grp.add(door);
-  for (const wx of [-2.2, 2.2]) {
-    const win = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 0.15), mat(0xbfe8ff));
-    win.position.set(wx, 2.3, 2.55); grp.add(win);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(10, 4.5, 7), mat(h.body));
+  body.position.y = 2.25; grp.add(body);
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(7.4, 3.5, 4), mat(h.roof));
+  roof.rotation.y = Math.PI / 4; roof.position.y = 6.25; grp.add(roof);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.8, 0.25), mat(h.door));
+  door.position.set(0, 1.4, 3.6); grp.add(door);
+  for (const wx of [-3.2, 3.2]) {
+    const win = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 0.15), mat(0xbfe8ff));
+    win.position.set(wx, 2.5, 3.55); grp.add(win);
   }
-  // 招牌：两根柱子 + 板
-  const signTex = makeSignTexture(app);
-  const signMat = new THREE.MeshBasicMaterial({ map: signTex, side: THREE.DoubleSide });
-  signMats.push({ app, mat: signMat });
+  const signMat = new THREE.MeshBasicMaterial({ map: makeSignTexture(h), side: THREE.DoubleSide });
+  signMats.push({ app: h, mat: signMat });
   const board = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 3.2), signMat);
-  board.position.set(0, 3.4, 5.2); grp.add(board);
+  board.position.set(0, 3.6, 5.4); grp.add(board);
   for (const px of [-2.8, 2.8]) {
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.2, 8), mat(0x5a3a1e));
-    post.position.set(px, 1.1, 5.2); grp.add(post);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.4, 8), mat(0x5a3a1e));
+    post.position.set(px, 1.2, 5.4); grp.add(post);
+  }
+  if (h.kind === 'dojo') { // 道馆门口两盏灯笼
+    for (const lx of [-4.2, 4.2]) {
+      const lp = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 2.2, 8), mat(0x3a2c1c));
+      lp.position.set(lx, 1.1, 4.6); grp.add(lp);
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.9, 0.6), new THREE.MeshBasicMaterial({ color: 0xffd76a }));
+      lamp.position.set(lx, 2.6, 4.6); grp.add(lamp);
+    }
   }
   grp.position.set(x, 0, z);
   scene.add(grp);
-  HOUSES.push({ app, x, z, doorZ: z + 2.6, hx: 4.0, hz: 4.2 });
+  HOUSES.push({ kind: h.kind, zh: h.zh, en: h.en, x, z, doorZ: z + 3.6, hx: 5.5, hz: 5.0 });
 }
-APPS.forEach((a, i) => buildHouse(a, -36 + i * 12));
+buildHouse({ kind: 'game', zh: '游戏屋', en: 'Game House', roof: 0x4da3ff, body: 0xfff6e8, door: 0x5a3a1e }, -20);
+buildHouse({ kind: 'dojo', zh: '道馆', en: 'Dojo', roof: 0x3a3f4a, body: 0xf5f0e6, door: 0xa31616 }, 0);
+buildHouse({ kind: 'piano', zh: '琴房', en: 'Piano Room', roof: 0x6b5a8a, body: 0xfdf8ec, door: 0x3a2c1c }, 20);
+// 两侧小路
+for (const px of [-20, 20]) {
+  const side = new THREE.Mesh(new THREE.PlaneGeometry(5, 34), mat(0xcbb27f));
+  side.rotation.x = -Math.PI / 2;
+  side.position.set(px, 0.03, -7);
+  scene.add(side);
+}
 
 /* 树 / 石头：避开房子街和广场 */
 function tree(x, z) {
@@ -463,12 +484,188 @@ function updateTrain(dt) {
   }
 }
 
+/* ============ 三间房子的室内 ============ */
+let area = 'outside'; // 'outside' | 'game' | 'dojo' | 'piano'
+const ROOMS = {
+  game: { cx: 500, cz: 0, hw: 10.2, hd: 7.2, boxes: [{ x: 500, z: -7.2, hx: 3.5, hz: 1.0 }, { x: 500, z: 0.5, hx: 2.8, hz: 1.4 }] },
+  dojo: { cx: 560, cz: 0, hw: 10.2, hd: 7.2, boxes: [{ x: 556, z: -2, hx: 1.8, hz: 0.9 }, { x: 564, z: -2, hx: 1.8, hz: 0.9 }] },
+  piano: { cx: 620, cz: 0, hw: 10.2, hd: 7.2, boxes: [{ x: 620, z: -3, hx: 2.1, hz: 2.6 }, { x: 620, z: 0.8, hx: 1.4, hz: 0.7 }] },
+};
+const HOUSE_X = { game: -20, dojo: 0, piano: 20 };
+function enterRoom(kind) {
+  area = kind;
+  const r = ROOMS[kind];
+  player.set(r.cx, EYE, r.cz + 5);
+  yaw = 0; pitch = 0; teleportGrace = 1.2;
+  hidePrompt();
+}
+function exitRoom() {
+  const kind = area;
+  area = 'outside';
+  player.set(HOUSE_X[kind], EYE, -17);
+  yaw = Math.PI; pitch = 0; teleportGrace = 1.2;
+  hidePrompt();
+}
+function interactables() {
+  if (area === 'outside') {
+    return HOUSES.map(h => ({ x: h.x, z: h.doorZ, r: 6.5,
+      zh: '进入' + h.zh, en: 'Enter the ' + h.en, btnZh: '进入', btnEn: 'Enter',
+      run: () => enterRoom(h.kind) }));
+  }
+  if (area === 'game') {
+    return [
+      { x: 500, z: -6.5, r: 4, zh: '走到电视前选游戏', en: 'Step up to the TV to pick a game', btnZh: '选游戏', btnEn: 'Pick', run: openGamePanel },
+      { x: 500, z: 7.0, r: 2.2, zh: '从门口出去', en: 'Exit through the door', btnZh: '出去', btnEn: 'Exit', run: exitRoom },
+    ];
+  }
+  if (area === 'dojo') {
+    return [
+      { x: 556, z: -2, r: 3, zh: '打开 WazaLab', en: 'Open WazaLab', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[1].url },
+      { x: 564, z: -2, r: 3, zh: '打开 FormBuddy', en: 'Open FormBuddy', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[3].url },
+      { x: 560, z: 7.0, r: 2.2, zh: '从门口出去', en: 'Exit through the door', btnZh: '出去', btnEn: 'Exit', run: exitRoom },
+    ];
+  }
+  return [
+    { x: 620, z: 0.8, r: 3, zh: '坐上琴凳，打开毛豆琴音', en: 'Sit at the bench for MaoDou Piano', btnZh: '开始练琴', btnEn: 'Play', run: () => window.location.href = APPS[6].url },
+    { x: 620, z: 7.0, r: 2.2, zh: '从门口出去', en: 'Exit through the door', btnZh: '出去', btnEn: 'Exit', run: exitRoom },
+  ];
+}
+
+function buildRoom(cx, cz, w, d, floorC, wallC) {
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(w, 0.2, d), mat(floorC));
+  floor.position.set(cx, -0.1, cz); scene.add(floor);
+  const h = 6, t = 0.3;
+  const wall = (ww, xx, zz, ry) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(ww, h, t), mat(wallC));
+    m.position.set(xx, h / 2, zz); m.rotation.y = ry; scene.add(m);
+  };
+  wall(w, cx, cz - d / 2, 0);
+  wall(w, cx, cz + d / 2, 0);
+  wall(d, cx - w / 2, cz, Math.PI / 2);
+  wall(d, cx + w / 2, cz, Math.PI / 2);
+  const ceil = new THREE.Mesh(new THREE.BoxGeometry(w, 0.2, d), mat(wallC));
+  ceil.position.set(cx, h + 0.1, cz); scene.add(ceil);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 0.2), mat(0x3a2c1c));
+  door.position.set(cx, 1.5, cz + d / 2 - 0.25); scene.add(door);
+}
+function makeTVTexture() {
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 288;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#10131f'; g.fillRect(0, 0, 512, 288);
+  g.fillStyle = '#fff'; g.textAlign = 'center';
+  g.font = 'bold 42px sans-serif';
+  g.fillText(lang === 'zh' ? '游戏屋电视' : 'Game House TV', 256, 58);
+  g.font = '29px sans-serif'; g.fillStyle = '#ffd32a';
+  ['打砖块 Breakout', 'Sketchy Skier', 'Flappy Bird', 'Mini Geometry Dash'].forEach((n, i) => g.fillText('▶ ' + n, 256, 118 + i * 40));
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return tex;
+}
+function makePosterTexture(title, sub, bg) {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 360;
+  const g = cv.getContext('2d');
+  g.fillStyle = bg; g.fillRect(0, 0, 256, 360);
+  g.fillStyle = '#fff'; g.textAlign = 'center';
+  g.font = 'bold 40px sans-serif'; g.fillText(title, 128, 120);
+  g.font = '26px sans-serif'; g.fillText(sub, 128, 170);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return tex;
+}
+
+// ---- 游戏屋室内：电视 + 沙发 + 海报 ----
+buildRoom(500, 0, 22, 16, 0x6b4a2f, 0x2a2f45);
+const tvStand = new THREE.Mesh(new THREE.BoxGeometry(7, 0.7, 1.6), mat(0x3a2c1c));
+tvStand.position.set(500, 0.35, -7.2); scene.add(tvStand);
+const tvBody = new THREE.Mesh(new THREE.BoxGeometry(6.4, 3.6, 0.3), mat(0x111111));
+tvBody.position.set(500, 2.5, -7.6); scene.add(tvBody);
+const tvMat = new THREE.MeshBasicMaterial({ map: makeTVTexture() });
+signMats.push({ tv: true, mat: tvMat });
+const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(6.0, 3.2), tvMat);
+tvScreen.position.set(500, 2.5, -7.44); scene.add(tvScreen);
+const sofaC = 0x3a5a9a;
+const sBase = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.7, 2.2), mat(sofaC));
+sBase.position.set(500, 0.35, 0.5); scene.add(sBase);
+const sBack = new THREE.Mesh(new THREE.BoxGeometry(5.5, 1.3, 0.6), mat(sofaC));
+sBack.position.set(500, 1.05, 1.45); scene.add(sBack);
+for (const ax of [-2.45, 2.45]) {
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.9, 2.2), mat(sofaC));
+  arm.position.set(500 + ax, 0.75, 0.5); scene.add(arm);
+}
+const gRug = new THREE.Mesh(new THREE.PlaneGeometry(8, 5), mat(0xa31616));
+gRug.rotation.x = -Math.PI / 2; gRug.position.set(500, 0.06, -3); scene.add(gRug);
+const posterL = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4.4), new THREE.MeshBasicMaterial({ map: makePosterTexture('打砖块', 'Breakout', '#4da3ff') }));
+posterL.rotation.y = Math.PI / 2; posterL.position.set(500 - 10.8, 3, -2); scene.add(posterL);
+const posterR = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4.4), new THREE.MeshBasicMaterial({ map: makePosterTexture('Mini Geometry Dash', '几何冲刺', '#00b894') }));
+posterR.rotation.y = -Math.PI / 2; posterR.position.set(500 + 10.8, 3, -2); scene.add(posterR);
+
+// ---- 道馆室内：榻榻米 + 桌子上的应用卡片 + “道”字挂轴 ----
+buildRoom(560, 0, 22, 16, 0xd9cfa8, 0xe8e0cc);
+for (const [px, pz] of [[-8, -5], [8, -5], [-8, 5], [8, 5]]) {
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 6, 10), mat(0x6b4a2f));
+  post.position.set(560 + px, 3, pz); scene.add(post);
+}
+function makeCardTexture(app) {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 360;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#f5efe0'; g.fillRect(0, 0, 256, 360);
+  g.strokeStyle = '#8a7a5a'; g.lineWidth = 8; g.strokeRect(8, 8, 240, 344);
+  g.fillStyle = '#222'; g.textAlign = 'center';
+  g.font = 'bold 44px sans-serif'; g.fillText(app.zh, 128, 90);
+  g.font = '26px sans-serif'; g.fillStyle = '#555'; g.fillText(app.en, 128, 140);
+  g.font = 'bold 30px sans-serif'; g.fillStyle = '#a31616'; g.fillText('进入 →', 128, 300);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return tex;
+}
+function dojoTable(x, app) {
+  const top = new THREE.Mesh(new THREE.BoxGeometry(3, 0.15, 1.2), mat(0x6b4a2f));
+  top.position.set(x, 0.55, -2); scene.add(top);
+  for (const [lx, lz] of [[-1.3, -0.45], [1.3, -0.45], [-1.3, 0.45], [1.3, 0.45]]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.55, 0.15), mat(0x6b4a2f));
+    leg.position.set(x + lx, 0.27, -2 + lz); scene.add(leg);
+  }
+  const card = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.2), new THREE.MeshBasicMaterial({ map: makeCardTexture(app), side: THREE.DoubleSide }));
+  card.position.set(x, 1.75, -2); scene.add(card);
+}
+dojoTable(556, APPS[1]);
+dojoTable(564, APPS[3]);
+function makeScrollTexture() {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 384;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#f5efe0'; g.fillRect(0, 0, 256, 384);
+  g.fillStyle = '#222'; g.textAlign = 'center';
+  g.font = 'bold 180px serif'; g.fillText('道', 128, 220);
+  g.font = '34px sans-serif'; g.fillText('空手道', 128, 300);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return tex;
+}
+const scroll = new THREE.Mesh(new THREE.PlaneGeometry(3, 4.5), new THREE.MeshBasicMaterial({ map: makeScrollTexture() }));
+scroll.position.set(560, 3.2, -7.8); scene.add(scroll);
+
+// ---- 琴房室内：三角琴 + 琴凳 ----
+buildRoom(620, 0, 22, 16, 0x8a6a4a, 0xf3ead8);
+const pRug = new THREE.Mesh(new THREE.PlaneGeometry(8, 7), mat(0x7a1f1f));
+pRug.rotation.x = -Math.PI / 2; pRug.position.set(620, 0.06, -2); scene.add(pRug);
+const pBody = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.4, 4.6), mat(0x1c1c22));
+pBody.position.set(620, 1.05, -3); scene.add(pBody);
+const pLid = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.12, 4.2), mat(0x1c1c22));
+pLid.position.set(620, 2.1, -3.4); pLid.rotation.x = -0.45; scene.add(pLid);
+for (const [lx, lz] of [[-1.5, -4.8], [1.5, -4.8], [0, -0.9]]) {
+  const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 1.0, 8), mat(0x1c1c22));
+  leg.position.set(620 + lx, 0.5, lz); scene.add(leg);
+}
+const pKeys = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.22, 0.9), mat(0xf5f5f0));
+pKeys.position.set(620, 0.98, -0.7); scene.add(pKeys);
+const pBlack = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.1, 0.35), mat(0x111111));
+pBlack.position.set(620, 1.12, -0.95); scene.add(pBlack);
+const benchTop = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.18, 0.9), mat(0x3a2c1c));
+benchTop.position.set(620, 0.6, 0.8); scene.add(benchTop);
+for (const bx of [-0.9, 0.9]) {
+  const bleg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.55, 0.7), mat(0x3a2c1c));
+  bleg.position.set(620 + bx, 0.28, 0.8); scene.add(bleg);
+}
+
 /* ============ 移动 / 碰撞 / 传送门 ============ */
 const keys = {};
-let locked = false, nearHouse = null;
+let locked = false;
+let currentAct = null, teleportGrace = 0;
 addEventListener('keydown', e => {
   keys[e.code] = true;
-  if (e.code === 'KeyE' && nearHouse) window.location.href = nearHouse.app.url;
+  if (e.code === 'KeyE' && currentAct) currentAct.run();
 });
 addEventListener('keyup', e => keys[e.code] = false);
 
@@ -480,7 +677,9 @@ canvas.addEventListener('click', () => {
 document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === canvas;
   document.getElementById('cross').style.display = locked ? 'block' : 'none';
-  if (!locked && document.getElementById('menu').classList.contains('show') === false) {
+  const menuOpen = document.getElementById('menu').classList.contains('show');
+  const selectOpen = document.getElementById('selectPanel').classList.contains('show');
+  if (!locked && !menuOpen && !selectOpen) {
     // 退出锁定后回到开始界面（除非正在看菜单）
     if (started) showStart(true);
   }
@@ -528,6 +727,20 @@ canvas.addEventListener('pointerup', lookEnd);
 canvas.addEventListener('pointercancel', lookEnd);
 
 function collide(p) {
+  if (area !== 'outside') {
+    const r = ROOMS[area];
+    for (const b of r.boxes) {
+      const dx = p.x - b.x, dz = p.z - b.z;
+      if (Math.abs(dx) < b.hx + 0.6 && Math.abs(dz) < b.hz + 0.6) {
+        const px = b.hx + 0.6 - Math.abs(dx), pz = b.hz + 0.6 - Math.abs(dz);
+        if (px < pz) p.x = b.x + Math.sign(dx || 1) * (b.hx + 0.6);
+        else p.z = b.z + Math.sign(dz || 1) * (b.hz + 0.6);
+      }
+    }
+    p.x = Math.max(r.cx - r.hw, Math.min(r.cx + r.hw, p.x));
+    p.z = Math.max(r.cz - r.hd, Math.min(r.cz + r.hd, p.z));
+    return;
+  }
   for (const h of HOUSES) {
     const dx = p.x - h.x, dz = p.z - h.z;
     if (Math.abs(dx) < h.hx + 0.6 && Math.abs(dz) < h.hz + 0.6) {
@@ -557,6 +770,8 @@ function collide(p) {
 
 const promptEl = document.getElementById('prompt');
 const promptText = document.getElementById('promptText');
+const btnEnterEl = document.getElementById('btnEnter');
+const hidePrompt = () => promptEl.classList.remove('show');
 let last = performance.now();
 function loop(now) {
   requestAnimationFrame(loop);
@@ -578,15 +793,19 @@ function loop(now) {
   collide(player);
   camera.position.copy(player);
   camera.rotation.y = yaw; camera.rotation.x = pitch;
-  // 最近的房子门
-  nearHouse = null;
-  let best = 6.5;
-  for (const h of HOUSES) {
-    const d = Math.hypot(player.x - h.x, player.z - h.doorZ);
-    if (d < best) { best = d; nearHouse = h; }
+  // 互动点（门、电视、卡片、琴凳、出口）
+  if (teleportGrace > 0) teleportGrace -= dt;
+  currentAct = null;
+  if (teleportGrace <= 0) {
+    let best = 1e9;
+    for (const it of interactables()) {
+      const d = Math.hypot(player.x - it.x, player.z - it.z);
+      if (d < it.r && d < best) { best = d; currentAct = it; }
+    }
   }
-  if (nearHouse) {
-    promptText.textContent = T[lang].near + ' ' + (lang === 'zh' ? nearHouse.app.zh : nearHouse.app.en);
+  if (currentAct) {
+    promptText.textContent = lang === 'zh' ? currentAct.zh : currentAct.en;
+    btnEnterEl.textContent = lang === 'zh' ? currentAct.btnZh : currentAct.btnEn;
     promptEl.classList.add('show');
   } else promptEl.classList.remove('show');
   updateTrain(dt);
@@ -606,7 +825,6 @@ function applyLang() {
   document.getElementById('subtitle').textContent = t.subtitle;
   document.getElementById('menuLabel').textContent = t.menu;
   document.getElementById('btnLang').textContent = lang === 'zh' ? 'EN' : '中文';
-  document.getElementById('btnEnter').textContent = t.enter;
   document.getElementById('hint').textContent = isTouch
     ? (lang === 'zh' ? '左摇杆移动 · 右半屏拖动看方向 · 靠近房子点进入' : 'Left stick to move · drag right side to look · tap Enter near a house')
     : t.hint;
@@ -615,6 +833,8 @@ function applyLang() {
   document.getElementById('startMenuLink').textContent = t.startMenu;
   document.getElementById('menuTitle').textContent = t.menuTitle;
   document.getElementById('menuClose').textContent = t.close;
+  document.getElementById('selectTitle').textContent = t.selectTitle;
+  document.getElementById('selectClose').textContent = t.close;
   const list = document.getElementById('menuList');
   list.innerHTML = '';
   for (const a of APPS) {
@@ -628,7 +848,7 @@ function applyLang() {
   cl.innerHTML = '<b>' + t.classic + '</b>';
   list.appendChild(cl);
   for (const s of signMats) {
-    s.mat.map = s.castle ? makeCastleSign() : makeSignTexture(s.app);
+    s.mat.map = s.castle ? makeCastleSign() : s.tv ? makeTVTexture() : makeSignTexture(s.app);
     s.mat.needsUpdate = true;
   }
 }
@@ -654,8 +874,26 @@ document.getElementById('menuClose').addEventListener('click', () => {
   document.getElementById('menu').classList.remove('show');
   if (started && !isTouch) canvas.requestPointerLock();
 });
+const GAME_IDX = [0, 2, 4, 5];
+function openGamePanel() {
+  const list = document.getElementById('selectList');
+  list.innerHTML = '';
+  for (const i of GAME_IDX) {
+    const a = APPS[i];
+    const el = document.createElement('a');
+    el.className = 'mcard'; el.href = a.url;
+    el.innerHTML = '<b>' + (lang === 'zh' ? a.zh : a.en) + '</b><span>' + (lang === 'zh' ? a.zhDesc : a.enDesc) + '</span>';
+    list.appendChild(el);
+  }
+  document.getElementById('selectPanel').classList.add('show');
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+document.getElementById('selectClose').addEventListener('click', () => {
+  document.getElementById('selectPanel').classList.remove('show');
+  if (started && !isTouch) canvas.requestPointerLock();
+});
 document.getElementById('btnEnter').addEventListener('click', () => {
-  if (nearHouse) window.location.href = nearHouse.app.url;
+  if (currentAct) currentAct.run();
 });
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
