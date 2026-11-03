@@ -392,21 +392,44 @@ const keep = new THREE.Mesh(new THREE.BoxGeometry(16, 13, 11), mat(stone));
 keep.position.y = 4 + 6.5; castle.add(keep);
 const hall = new THREE.Mesh(new THREE.BoxGeometry(9, 8, 17), mat(stone));
 hall.position.set(-12, 4 + 4, 1); castle.add(hall);
+const winMat = new THREE.MeshBasicMaterial({ color: 0xffd76a });
+const winDimMat = new THREE.MeshBasicMaterial({ color: 0xff9e57 });
 function tower(x, z, h, r) {
   const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r + 0.3, h, 10), mat(stone));
   t.position.set(x, 4 + h / 2, z); castle.add(t);
   const sp = new THREE.Mesh(new THREE.ConeGeometry(r + 0.6, 6, 10), mat(spireCol));
   sp.position.set(x, 4 + h + 3, z); castle.add(sp);
+  // 塔楼窗：朝南一面，高低两层、明暗两档灯光，灯光层次由此而来
+  [[0.45, winMat], [0.75, winDimMat]].forEach(([fy, m]) => {
+    const w = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.0, 0.15), m);
+    w.position.set(x, 4 + h * fy, z + r + 0.02); castle.add(w);
+  });
 }
 tower(-8, -5, 17, 2.4); tower(8, -5, 20, 2.4); tower(-8, 5, 14, 2.1); tower(8, 5, 16, 2.1);
 tower(0, -5, 24, 2.6); tower(-13, 1, 11, 1.9);
-const winMat = new THREE.MeshBasicMaterial({ color: 0xffd76a });
+// 墙顶垛口：主楼前后沿 + 两侧沿 + 西翼南沿
+function crenel(x, y, z, alongX) {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(alongX ? 0.9 : 0.5, 0.8, alongX ? 0.5 : 0.9), mat(stone));
+  b.position.set(x, y, z); castle.add(b);
+}
+for (let x = -7.2; x <= 7.3; x += 1.8) { crenel(x, 17.4, 5.5, true); crenel(x, 17.4, -5.5, true); }
+for (let z = -4.5; z <= 4.6; z += 1.8) { crenel(8, 17.4, z, false); crenel(-8, 17.4, z, false); }
+for (let x = -15.6; x <= -8.3; x += 1.8) crenel(x, 12.4, 9.5, true);
 for (let i = 0; i < 18; i++) {
-  const w = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 0.15), winMat);
+  const w = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 0.15), i % 3 === 0 ? winDimMat : winMat);
   w.position.set(-6 + (i % 6) * 2.4, 7.5 + Math.floor(i / 6) * 3.2, 5.55); castle.add(w);
 }
-const gate = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.6, 0.3), mat(0x3a2c1c));
-gate.position.set(0, 4 + 1.8, 5.6); castle.add(gate);
+// 城门拱门：外凸的石门楼 + 深色门洞 + 半圆拱环 + 两侧门灯（只作景观，不开通行）
+const gatehouse = new THREE.Mesh(new THREE.BoxGeometry(4.6, 5.0, 1.4), mat(stone));
+gatehouse.position.set(0, 4 + 2.5, 6.0); castle.add(gatehouse);
+const gate = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.6, 0.2), mat(0x3a2c1c));
+gate.position.set(0, 4 + 1.8, 6.75); castle.add(gate);
+const arch = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.32, 8, 16, Math.PI), mat(stone));
+arch.position.set(0, 4 + 3.6, 6.85); castle.add(arch);
+for (const lx of [-1.9, 1.9]) {
+  const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.5, 0.15), winMat);
+  lamp.position.set(lx, 4 + 3.2, 6.8); castle.add(lamp);
+}
 const cSignMat = new THREE.MeshBasicMaterial({ map: makeCastleSign(), side: THREE.DoubleSide });
 signMats.push({ castle: true, mat: cSignMat });
 const cBoard = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 3.2), cSignMat);
