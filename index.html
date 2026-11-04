@@ -353,6 +353,77 @@ const water = new THREE.Mesh(new THREE.CircleGeometry(LAKE.r, 40),
 water.rotation.x = -Math.PI / 2; water.position.set(LAKE.x, 0.09, LAKE.z); scene.add(water);
 CIRCLES.push(LAKE);
 
+// ---- 湖边：小码头 / 小木船 / 芦苇 / 石头（景观，不改湖面碰撞，码头水上部分不可行走） ----
+const lakeDock = new THREE.Group();
+for (let i = 0; i < 10; i++) {
+  const plank = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.18, 2.6), mat(i % 2 ? 0x8a6a42 : 0x7d5f38));
+  plank.position.set(36.5 + i * 1.2, 0.38, 15); lakeDock.add(plank);
+}
+for (const px of [38, 42, 46]) for (const pz of [13.9, 16.1]) {
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.6, 8), mat(0x5a3a1e));
+  post.position.set(px, 0.15, pz); lakeDock.add(post);
+}
+for (const pz of [13.8, 16.2]) {
+  const moor = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 1.1, 8), mat(0x5a3a1e));
+  moor.position.set(48.2, 0.55, pz); lakeDock.add(moor);
+}
+scene.add(lakeDock);
+// 小木船：尖头船身（挤出造型）+ 船舱底板 + 横座 + 船舷条 + 两侧船桨，系在码头末端南侧水面
+const lakeBoat = new THREE.Group();
+const boatShape = new THREE.Shape();
+boatShape.moveTo(-1.9, -0.7);
+boatShape.lineTo(1.1, -0.7);
+boatShape.lineTo(1.9, 0);
+boatShape.lineTo(1.1, 0.7);
+boatShape.lineTo(-1.9, 0.7);
+boatShape.lineTo(-1.9, -0.7);
+const boatGeo = new THREE.ExtrudeGeometry(boatShape, { depth: 0.55, bevelEnabled: false });
+boatGeo.rotateX(-Math.PI / 2);
+const boatHull = new THREE.Mesh(boatGeo, mat(0x8a6a42));
+boatHull.position.y = 0.02; lakeBoat.add(boatHull);
+const boatFloor = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.08, 1.05), mat(0x5a3a1e));
+boatFloor.position.set(-0.2, 0.5, 0); lakeBoat.add(boatFloor);
+for (const sx of [-1.0, 0.2]) {
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 1.15), mat(0x6b4a2f));
+  seat.position.set(sx, 0.56, 0); lakeBoat.add(seat);
+}
+for (const sz of [-0.68, 0.68]) {
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.08, 0.12), mat(0x6b4a2f));
+  rail.position.set(-0.2, 0.6, sz); lakeBoat.add(rail);
+}
+for (const s of [-1, 1]) {
+  const oar = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.2, 6), mat(0x7d5f38));
+  oar.position.set(0.3, 0.62, s * 1.4); oar.rotation.x = Math.PI / 2; lakeBoat.add(oar);
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.06, 0.7), mat(0x7d5f38));
+  blade.position.set(0.3, 0.58, s * 2.45); lakeBoat.add(blade);
+}
+lakeBoat.position.set(50, 0, 19); lakeBoat.rotation.y = -0.3; scene.add(lakeBoat);
+// 芦苇：8 簇沿湖岸分布（避开西岸码头正前方），每簇 5 株 + 1 根褐色穗头
+const reedClusters = [[-150, 19.5], [-110, 20], [-60, 19.5], [-10, 20.5], [35, 19.5], [85, 20], [130, 19.5], [155, 20.5]];
+for (const [deg, rr] of reedClusters) {
+  const a = deg * Math.PI / 180;
+  const rx = LAKE.x + Math.cos(a) * rr, rz = LAKE.z + Math.sin(a) * rr;
+  for (const [ox, oz, h] of [[0, 0, 1.3], [0.4, 0.3, 1.0], [-0.4, 0.2, 1.15], [0.2, -0.4, 0.9], [-0.3, -0.3, 1.25]]) {
+    const reed = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, h, 5), mat(0x3f7a3a));
+    reed.position.set(rx + ox, h / 2, rz + oz);
+    reed.rotation.z = ox * 0.12; reed.rotation.x = oz * 0.12; scene.add(reed);
+  }
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.4, 6), mat(0x6b4a2f));
+  head.position.set(rx, 1.45, rz); scene.add(head);
+}
+// 湖边石头：沿湖岸 7 块 + 码头陆地端旁 2 块
+const lakeStones = [[-135, 20.5, 0.6], [-85, 21, 0.45], [-35, 20, 0.7], [10, 21.5, 0.5], [60, 20, 0.65], [105, 21, 0.4], [145, 20.5, 0.55]];
+for (const [deg, rr, sz] of lakeStones) {
+  const a = deg * Math.PI / 180;
+  const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(sz, 0), mat(0x9aa0a6));
+  stone.position.set(LAKE.x + Math.cos(a) * rr, sz * 0.55, LAKE.z + Math.sin(a) * rr);
+  stone.rotation.y = deg * 0.1; scene.add(stone);
+}
+for (const [sx, sz2, ss] of [[36.5, 12.2, 0.5], [36, 18, 0.45]]) {
+  const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(ss, 0), mat(0x9aa0a6));
+  stone.position.set(sx, ss * 0.55, sz2); scene.add(stone);
+}
+
 // ---- 群山（远景） ----
 for (let i = 0; i < 12; i++) {
   const a = (i / 12) * Math.PI * 2 + 0.3;
