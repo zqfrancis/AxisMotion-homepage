@@ -526,6 +526,11 @@ for (let x = -66; x <= 66; x += 12) {
   p.position.set(x, 2.5, VIA_Z); scene.add(p);
   EXTRA_BOXES.push({ x, z: VIA_Z, hx: 1.7, hz: 2.2 });
 }
+// 桥墩间拱形：半圆拱环，拱脚贴桥墩内侧、拱顶贴桥底（只作景观，不改碰撞）
+for (let x = -60; x <= 60; x += 12) {
+  const a = new THREE.Mesh(new THREE.TorusGeometry(4.4, 0.55, 8, 20, Math.PI), mat(0x7d7869));
+  a.position.set(x, 0, VIA_Z); scene.add(a);
+}
 const train = new THREE.Group();
 const loco = new THREE.Group();
 const lb = new THREE.Mesh(new THREE.BoxGeometry(6.5, 2.4, 2.6), mat(0x1c1c22));
@@ -536,6 +541,14 @@ const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 1.4, 10), m
 chimney.position.set(2.8, 3.1, 0); loco.add(chimney);
 const stripe = new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.4, 2.7), mat(0xa31616));
 stripe.position.y = 0.5; loco.add(stripe);
+// 车头灯：车头正前方暖黄灯珠（MeshBasicMaterial 自发光感，与城堡门灯同做法）
+const headlamp = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 10), new THREE.MeshBasicMaterial({ color: 0xffe9a8 }));
+headlamp.position.set(3.3, 1.3, 0); loco.add(headlamp);
+// 驾驶室两侧亮窗
+for (const wz of [-1.32, 1.32]) {
+  const cw = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.0, 0.08), new THREE.MeshBasicMaterial({ color: 0xffd76a }));
+  cw.position.set(-2.4, 3.4, wz); loco.add(cw);
+}
 train.add(loco);
 [0x7a1f1f, 0x7a1f1f, 0x5a2a1a].forEach((c, i) => {
   const car = new THREE.Group();
@@ -543,10 +556,28 @@ train.add(loco);
   b.position.y = 1.2; car.add(b);
   const strip = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.8, 2.7), mat(0xf3e3c0));
   strip.position.y = 1.6; car.add(strip);
+  // 车厢窗户灯：每侧 3 扇暖黄亮窗，贴在米色腰带上
+  for (const wz of [-1.36, 1.36]) for (const wx of [-1.6, 0, 1.6]) {
+    const w = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.0, 0.08), new THREE.MeshBasicMaterial({ color: 0xffd76a }));
+    w.position.set(wx, 1.6, wz); car.add(w);
+  }
   car.position.x = -6.4 - i * 6.2; train.add(car);
 });
 train.position.set(-60, 5.7, VIA_Z);
 scene.add(train);
+// ---- 桥边小站台 + 小雨棚（高架桥南侧地面，景观；站台加碰撞） ----
+const platform = new THREE.Mesh(new THREE.BoxGeometry(14, 0.8, 3), mat(0x8a8578));
+platform.position.set(0, 0.4, -53); scene.add(platform);
+EXTRA_BOXES.push({ x: 0, z: -53, hx: 7, hz: 1.5 });
+// 站台边缘黄色安全线
+const platLine = new THREE.Mesh(new THREE.BoxGeometry(14, 0.06, 0.3), mat(0xffd32a));
+platLine.position.set(0, 0.83, -54.2); scene.add(platLine);
+for (const px of [-4.5, 4.5]) for (const pz of [-54.2, -51.8]) {
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.6, 8), mat(0x5a3a1e));
+  post.position.set(px, 0.8 + 1.3, pz); scene.add(post);
+}
+const canopy = new THREE.Mesh(new THREE.BoxGeometry(10.5, 0.15, 3.4), mat(0x7a1f1f));
+canopy.position.set(0, 3.5, -53); canopy.rotation.x = 0.08; scene.add(canopy);
 let trainDir = 1, trainX = -60;
 const smokeGeo = new THREE.SphereGeometry(0.55, 8, 8);
 const puffs = [];
