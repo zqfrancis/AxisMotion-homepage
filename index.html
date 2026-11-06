@@ -216,10 +216,14 @@ try {
 }
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
+// 黄昏：开阴影，太阳压低后才有长影
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb, 70, 230);
+// 黄昏天色：暖暮橙（旧 0x87ceeb 正午亮蓝天，与暖窗冲突）
+scene.background = new THREE.Color(0xe08a5c);
+scene.fog = new THREE.Fog(0xd98a63, 70, 230);
 
 const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.1, 300);
 camera.rotation.order = 'YXZ';
@@ -228,9 +232,16 @@ const EYE = 1.7;
 const player = new THREE.Vector3(0, EYE, 10); // 出生点：广场南侧，面向房子街
 camera.position.copy(player);
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0x88aa55, 1.0));
-const sun = new THREE.DirectionalLight(0xffffff, 0.9);
-sun.position.set(30, 50, 20);
+// 黄昏光：淡紫暮色半球光 + 低角度暖太阳（西边，-X），取代正午顶光
+scene.add(new THREE.HemisphereLight(0x9a7bb0, 0x6b4a35, 0.6));
+const sun = new THREE.DirectionalLight(0xffb36b, 1.5);
+sun.position.set(-70, 16, 30);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -100; sun.shadow.camera.right = 100;
+sun.shadow.camera.top = 100; sun.shadow.camera.bottom = -100;
+sun.shadow.camera.near = 1; sun.shadow.camera.far = 260;
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.6;
 scene.add(sun);
 
 const mat = (c, extra) => new THREE.MeshLambertMaterial(Object.assign({ color: c }, extra || {}));
@@ -238,16 +249,19 @@ const mat = (c, extra) => new THREE.MeshLambertMaterial(Object.assign({ color: c
 /* 地面 / 广场 / 小路 */
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), mat(0x5da83a));
 ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
 scene.add(ground);
 
 const plaza = new THREE.Mesh(new THREE.CircleGeometry(11, 40), mat(0xd9c08a));
 plaza.rotation.x = -Math.PI / 2;
 plaza.position.set(0, 0.02, 10);
+plaza.receiveShadow = true;
 scene.add(plaza);
 
 const path = new THREE.Mesh(new THREE.PlaneGeometry(9, 34), mat(0xcbb27f));
 path.rotation.x = -Math.PI / 2;
 path.position.set(0, 0.03, -7);
+path.receiveShadow = true;
 scene.add(path);
 
 /* 三间房子：沿 z=-28 一字排开，门朝广场(+Z)，都能推门走进去 */
@@ -273,14 +287,17 @@ function makeSignTexture(app) {
 function buildHouse(h, x) {
   const z = -28, grp = new THREE.Group();
   const body = new THREE.Mesh(new THREE.BoxGeometry(10, 4.5, 7), mat(h.body));
-  body.position.y = 2.25; grp.add(body);
+  body.position.y = 2.25; body.castShadow = true; body.receiveShadow = true; grp.add(body);
   const roof = new THREE.Mesh(new THREE.ConeGeometry(7.4, 3.5, 4), mat(h.roof));
-  roof.rotation.y = Math.PI / 4; roof.position.y = 6.25; grp.add(roof);
+  roof.rotation.y = Math.PI / 4; roof.position.y = 6.25; roof.castShadow = true; grp.add(roof);
   const door = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.8, 0.25), mat(h.door));
   door.position.set(0, 1.4, 3.6); grp.add(door);
+  // 黄昏窗：暖光窗格 + 深色木窗框（旧淡蓝玻璃在黄昏里不成立）
   for (const wx of [-3.2, 3.2]) {
-    const win = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 0.15), mat(0xbfe8ff));
-    win.position.set(wx, 2.5, 3.55); grp.add(win);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.7, 0.1), mat(0x5a3a1e));
+    frame.position.set(wx, 2.5, 3.53); grp.add(frame);
+    const win = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 0.15), new THREE.MeshBasicMaterial({ color: 0xffc46b }));
+    win.position.set(wx, 2.5, 3.58); grp.add(win);
   }
   const signMat = new THREE.MeshBasicMaterial({ map: makeSignTexture(h), side: THREE.DoubleSide });
   signMats.push({ app: h, mat: signMat });
@@ -310,18 +327,37 @@ for (const px of [-20, 20]) {
   const side = new THREE.Mesh(new THREE.PlaneGeometry(5, 34), mat(0xcbb27f));
   side.rotation.x = -Math.PI / 2;
   side.position.set(px, 0.03, -7);
+  side.receiveShadow = true;
   scene.add(side);
+}
+
+// 黄昏路灯：沿主路两侧交错布设，灯头暖光自发光；其中 3 盏带暖色点光源，
+// 在黄昏里形成第二层光（光池落在小路上），不是白天摆件
+const lampGlow = new THREE.MeshBasicMaterial({ color: 0xffd76a });
+const lampLightPos = [];
+for (const [lx, lz] of [[5.2, 8], [-5.2, 0], [5.2, -8], [-5.2, -16], [5.2, -24]]) {
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 3.0, 8), mat(0x2e2a26));
+  pole.position.set(lx, 1.5, lz); pole.castShadow = true; scene.add(pole);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), lampGlow);
+  head.position.set(lx, 3.2, lz); scene.add(head);
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.35, 4), mat(0x2e2a26));
+  cap.position.set(lx, 3.6, lz); cap.rotation.y = Math.PI / 4; scene.add(cap);
+  if (lz === 8 || lz === -8 || lz === -24) lampLightPos.push([lx, lz]);
+}
+for (const [lx, lz] of lampLightPos) {
+  const pl = new THREE.PointLight(0xffb45e, 20, 18, 2);
+  pl.position.set(lx, 3.1, lz); scene.add(pl);
 }
 
 /* 树 / 石头：避开房子街和广场 */
 function tree(x, z) {
   const g = new THREE.Group();
   const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 2, 8), mat(0x7a4a21));
-  trunk.position.y = 1; g.add(trunk);
+  trunk.position.y = 1; trunk.castShadow = true; g.add(trunk);
   const c1 = new THREE.Mesh(new THREE.ConeGeometry(2.2, 4.5, 8), mat(0x2e7d32));
-  c1.position.y = 4; g.add(c1);
+  c1.position.y = 4; c1.castShadow = true; g.add(c1);
   const c2 = new THREE.Mesh(new THREE.ConeGeometry(1.5, 3, 8), mat(0x388e3c));
-  c2.position.y = 6.2; g.add(c2);
+  c2.position.y = 6.2; c2.castShadow = true; g.add(c2);
   g.position.set(x, 0, z); scene.add(g);
 }
 let seed = 7;
@@ -349,7 +385,8 @@ const LAKE = { x: 58, z: 15, r: 18 };
 const rim = new THREE.Mesh(new THREE.CircleGeometry(LAKE.r + 1.5, 40), mat(0xd9c08a));
 rim.rotation.x = -Math.PI / 2; rim.position.set(LAKE.x, 0.04, LAKE.z); scene.add(rim);
 const water = new THREE.Mesh(new THREE.CircleGeometry(LAKE.r, 40),
-  new THREE.MeshLambertMaterial({ color: 0x2b6cb0, transparent: true, opacity: 0.92 }));
+  // 黄昏湖面：更深的暮蓝（旧 0x2b6cb0 正午亮蓝）
+  new THREE.MeshLambertMaterial({ color: 0x4a6a9a, transparent: true, opacity: 0.92 }));
 water.rotation.x = -Math.PI / 2; water.position.set(LAKE.x, 0.09, LAKE.z); scene.add(water);
 CIRCLES.push(LAKE);
 
@@ -458,18 +495,18 @@ function makeCastleSign() {
 const castle = new THREE.Group();
 const stone = 0x9a8f7d, spireCol = 0x3a4a6b;
 const cHill = new THREE.Mesh(new THREE.CylinderGeometry(24, 30, 4, 10), mat(0x5d7a45));
-cHill.position.y = 2; castle.add(cHill);
+cHill.position.y = 2; cHill.receiveShadow = true; castle.add(cHill);
 const keep = new THREE.Mesh(new THREE.BoxGeometry(16, 13, 11), mat(stone));
-keep.position.y = 4 + 6.5; castle.add(keep);
+keep.position.y = 4 + 6.5; keep.castShadow = true; keep.receiveShadow = true; castle.add(keep);
 const hall = new THREE.Mesh(new THREE.BoxGeometry(9, 8, 17), mat(stone));
-hall.position.set(-12, 4 + 4, 1); castle.add(hall);
+hall.position.set(-12, 4 + 4, 1); hall.castShadow = true; castle.add(hall);
 const winMat = new THREE.MeshBasicMaterial({ color: 0xffd76a });
 const winDimMat = new THREE.MeshBasicMaterial({ color: 0xff9e57 });
 function tower(x, z, h, r) {
   const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r + 0.3, h, 10), mat(stone));
-  t.position.set(x, 4 + h / 2, z); castle.add(t);
+  t.position.set(x, 4 + h / 2, z); t.castShadow = true; castle.add(t);
   const sp = new THREE.Mesh(new THREE.ConeGeometry(r + 0.6, 6, 10), mat(spireCol));
-  sp.position.set(x, 4 + h + 3, z); castle.add(sp);
+  sp.position.set(x, 4 + h + 3, z); sp.castShadow = true; castle.add(sp);
   // 塔楼窗：朝南一面，高低两层、明暗两档灯光，灯光层次由此而来
   [[0.45, winMat], [0.75, winDimMat]].forEach(([fy, m]) => {
     const w = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.0, 0.15), m);
@@ -492,7 +529,7 @@ for (let i = 0; i < 18; i++) {
 }
 // 城门拱门：外凸的石门楼 + 深色门洞 + 半圆拱环 + 两侧门灯（只作景观，不开通行）
 const gatehouse = new THREE.Mesh(new THREE.BoxGeometry(4.6, 5.0, 1.4), mat(stone));
-gatehouse.position.set(0, 4 + 2.5, 6.0); castle.add(gatehouse);
+gatehouse.position.set(0, 4 + 2.5, 6.0); gatehouse.castShadow = true; castle.add(gatehouse);
 const gate = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.6, 0.2), mat(0x3a2c1c));
 gate.position.set(0, 4 + 1.8, 6.75); castle.add(gate);
 const arch = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.32, 8, 16, Math.PI), mat(stone));
@@ -516,14 +553,14 @@ EXTRA_BOXES.push({ x: 0, z: -78, hx: 15, hz: 11 });
 // ---- 高架桥 + 魔法列车（东西向，横在城堡前方） ----
 const VIA_Z = -60;
 const deck = new THREE.Mesh(new THREE.BoxGeometry(150, 1.2, 4.5), mat(0x8a8578));
-deck.position.set(0, 5, VIA_Z); scene.add(deck);
+deck.position.set(0, 5, VIA_Z); deck.castShadow = true; deck.receiveShadow = true; scene.add(deck);
 for (const rx of [-0.9, 0.9]) {
   const rail = new THREE.Mesh(new THREE.BoxGeometry(150, 0.18, 0.18), mat(0x3c3c3c));
   rail.position.set(0, 5.7, VIA_Z + rx); scene.add(rail);
 }
 for (let x = -66; x <= 66; x += 12) {
   const p = new THREE.Mesh(new THREE.BoxGeometry(2.6, 5, 3.6), mat(0x7d7869));
-  p.position.set(x, 2.5, VIA_Z); scene.add(p);
+  p.position.set(x, 2.5, VIA_Z); p.castShadow = true; p.receiveShadow = true; scene.add(p);
   EXTRA_BOXES.push({ x, z: VIA_Z, hx: 1.7, hz: 2.2 });
 }
 // 桥墩间拱形：半圆拱环，拱脚贴桥墩内侧、拱顶贴桥底（只作景观，不改碰撞）
@@ -534,9 +571,9 @@ for (let x = -60; x <= 60; x += 12) {
 const train = new THREE.Group();
 const loco = new THREE.Group();
 const lb = new THREE.Mesh(new THREE.BoxGeometry(6.5, 2.4, 2.6), mat(0x1c1c22));
-lb.position.y = 1.2; loco.add(lb);
+lb.position.y = 1.2; lb.castShadow = true; loco.add(lb);
 const cab = new THREE.Mesh(new THREE.BoxGeometry(2, 2.2, 2.6), mat(0x1c1c22));
-cab.position.set(-2.4, 3.2, 0); loco.add(cab);
+cab.position.set(-2.4, 3.2, 0); cab.castShadow = true; loco.add(cab);
 const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 1.4, 10), mat(0x1c1c22));
 chimney.position.set(2.8, 3.1, 0); loco.add(chimney);
 const stripe = new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.4, 2.7), mat(0xa31616));
@@ -553,7 +590,7 @@ train.add(loco);
 [0x7a1f1f, 0x7a1f1f, 0x5a2a1a].forEach((c, i) => {
   const car = new THREE.Group();
   const b = new THREE.Mesh(new THREE.BoxGeometry(5.2, 2.4, 2.6), mat(c));
-  b.position.y = 1.2; car.add(b);
+  b.position.y = 1.2; b.castShadow = true; car.add(b);
   const strip = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.8, 2.7), mat(0xf3e3c0));
   strip.position.y = 1.6; car.add(strip);
   // 车厢窗户灯：每侧 3 扇暖黄亮窗，贴在米色腰带上
@@ -567,7 +604,7 @@ train.position.set(-60, 5.7, VIA_Z);
 scene.add(train);
 // ---- 桥边小站台 + 小雨棚（高架桥南侧地面，景观；站台加碰撞） ----
 const platform = new THREE.Mesh(new THREE.BoxGeometry(14, 0.8, 3), mat(0x8a8578));
-platform.position.set(0, 0.4, -53); scene.add(platform);
+platform.position.set(0, 0.4, -53); platform.receiveShadow = true; scene.add(platform);
 EXTRA_BOXES.push({ x: 0, z: -53, hx: 7, hz: 1.5 });
 // 站台边缘黄色安全线
 const platLine = new THREE.Mesh(new THREE.BoxGeometry(14, 0.06, 0.3), mat(0xffd32a));
@@ -582,7 +619,7 @@ let trainDir = 1, trainX = -60;
 const smokeGeo = new THREE.SphereGeometry(0.55, 8, 8);
 const puffs = [];
 for (let i = 0; i < 14; i++) {
-  const m = new THREE.Mesh(smokeGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 }));
+  const m = new THREE.Mesh(smokeGeo, new THREE.MeshBasicMaterial({ color: 0xffe9d6, transparent: true, opacity: 0 }));
   m.visible = false; scene.add(m);
   puffs.push({ mesh: m, age: 0, active: false });
 }
