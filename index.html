@@ -185,6 +185,10 @@ const APPS = [
     zhDesc: '练琴计时：只给真正的弹琴计时，Aaron 和 Abigail 各自记录',
     enDesc: 'Piano practice timer: only real playing counts, for Aaron and Abigail',
     url: 'https://zqfrancis.github.io/MaoDouQinYin/', color: 0xe67e22 },
+  { zh: '雪舞世界', en: 'Snow Dance World',
+    zhDesc: '3D 单板滑雪：无尽下坡，躲树穿旗门',
+    enDesc: '3D snowboarding: endless downhill, dodge trees, ride the gates',
+    url: 'https://zqfrancis.github.io/SnowDanceWorld/', color: 0x22d3ee },
 ];
 
 const T = {
@@ -677,17 +681,23 @@ function interactables() {
   if (area === 'game') {
     return [
       { x: 500, z: -6.5, r: 4, zh: '走到电视前选游戏', en: 'Step up to the TV to pick a game', btnZh: '选游戏', btnEn: 'Pick', run: openGamePanel },
+      { x: 492, z: -5, r: 3, zh: '打开打砖块', en: 'Open Breakout', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[0].url },
+      { x: 492, z: 0.5, r: 3, zh: '打开 Sketchy Skier', en: 'Open Sketchy Skier', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[2].url },
+      { x: 508, z: -5, r: 3, zh: '打开 Flappy Bird', en: 'Open Flappy Bird', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[4].url },
+      { x: 508, z: 0.5, r: 3, zh: '打开 Mini Geometry Dash', en: 'Open Mini Geometry Dash', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[5].url },
+      { x: 492, z: 5.5, r: 3, zh: '打开雪舞世界', en: 'Open Snow Dance World', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[7].url },
       { x: 500, z: 7.0, r: 2.2, zh: '从门口出去', en: 'Exit through the door', btnZh: '出去', btnEn: 'Exit', run: exitRoom },
     ];
   }
   if (area === 'dojo') {
     return [
-      { x: 556, z: -2, r: 3, zh: '打开 WazaLab', en: 'Open WazaLab', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[1].url },
-      { x: 564, z: -2, r: 3, zh: '打开 FormBuddy', en: 'Open FormBuddy', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[3].url },
+      { x: 552, z: -4, r: 3, zh: '打开 WazaLab', en: 'Open WazaLab', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[1].url },
+      { x: 568, z: -4, r: 3, zh: '打开 FormBuddy', en: 'Open FormBuddy', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[3].url },
       { x: 560, z: 7.0, r: 2.2, zh: '从门口出去', en: 'Exit through the door', btnZh: '出去', btnEn: 'Exit', run: exitRoom },
     ];
   }
   return [
+    { x: 628, z: -2, r: 3, zh: '打开毛豆琴音', en: 'Open MaoDou Piano', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[6].url },
     { x: 620, z: 0.8, r: 3, zh: '坐上琴凳，打开毛豆琴音', en: 'Sit at the bench for MaoDou Piano', btnZh: '开始练琴', btnEn: 'Play', run: () => window.location.href = APPS[6].url },
     { x: 620, z: 7.0, r: 2.2, zh: '从门口出去', en: 'Exit through the door', btnZh: '出去', btnEn: 'Exit', run: exitRoom },
   ];
@@ -718,19 +728,130 @@ function makeTVTexture() {
   g.font = 'bold 42px sans-serif';
   g.fillText(lang === 'zh' ? '游戏屋电视' : 'Game House TV', 256, 58);
   g.font = '29px sans-serif'; g.fillStyle = '#ffd32a';
-  ['打砖块 Breakout', 'Sketchy Skier', 'Flappy Bird', 'Mini Geometry Dash'].forEach((n, i) => g.fillText('▶ ' + n, 256, 118 + i * 40));
+  ['打砖块 Breakout', 'Sketchy Skier', 'Flappy Bird', 'Mini Geometry Dash', '雪舞世界 Snow Dance World'].forEach((n, i) => g.fillText('▶ ' + n, 256, 112 + i * 36));
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return tex;
 }
-function makePosterTexture(title, sub, bg) {
+// 生动海报：上半是该游戏的标志性画面（Canvas 手绘），下半是双语标题带。
+// 语言切换时由 signMats 的 redraw 回调重绘（见 applyLang）。
+function makePosterArt(appIdx) {
+  const app = APPS[appIdx];
   const cv = document.createElement('canvas'); cv.width = 256; cv.height = 360;
   const g = cv.getContext('2d');
-  g.fillStyle = bg; g.fillRect(0, 0, 256, 360);
+  const grad = g.createLinearGradient(0, 0, 0, 360);
+  const cols = ['#4da3ff', '#ffd32a', '#2ed573', '#ff9f43', '#22d3ee', '#00b894', '#e67e22', '#22d3ee'];
+  grad.addColorStop(0, '#1c2733'); grad.addColorStop(0.7, cols[appIdx] || '#4da3ff'); grad.addColorStop(1, '#10131f');
+  g.fillStyle = grad; g.fillRect(0, 0, 256, 360);
+  g.save();
+  g.beginPath(); g.rect(0, 0, 256, 252); g.clip();
+  const circle = (x, y, r, c) => { g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+  const brick = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); g.strokeStyle = 'rgba(255,255,255,.5)'; g.strokeRect(x, y, w, h); };
+  if (appIdx === 0) { // 打砖块：砖块阵 + 弹球 + 挡板
+    const bc = ['#ff6b6b', '#ffd32a', '#2ed573', '#4da3ff', '#c79bff'];
+    for (let r = 0; r < 5; r++) for (let c = 0; c < 6; c++) brick(14 + c * 39, 26 + r * 20, 34, 15, bc[r]);
+    circle(128, 185, 10, '#fff'); circle(118, 172, 4, 'rgba(255,255,255,.6)'); circle(108, 160, 3, 'rgba(255,255,255,.4)');
+    g.fillStyle = '#ffd32a'; g.fillRect(88, 215, 80, 14); g.fillStyle = '#fff'; g.fillRect(98, 218, 20, 8);
+  } else if (appIdx === 2) { // Sketchy Skier：涂鸦小人 + 跳台
+    g.fillStyle = '#dff3ff'; g.fillRect(0, 0, 256, 252);
+    g.fillStyle = '#fff'; g.beginPath(); g.moveTo(0, 252); g.lineTo(256, 120); g.lineTo(256, 252); g.closePath(); g.fill();
+    g.strokeStyle = '#8a6a42'; g.lineWidth = 8; g.beginPath(); g.moveTo(30, 200); g.lineTo(110, 150); g.stroke();
+    g.strokeStyle = '#222'; g.lineWidth = 5; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(150, 120); g.lineTo(175, 165); g.stroke(); // 身体
+    g.beginPath(); g.moveTo(175, 165); g.lineTo(150, 195); g.moveTo(175, 165); g.lineTo(200, 190); g.stroke(); // 腿
+    g.beginPath(); g.moveTo(160, 135); g.lineTo(130, 115); g.moveTo(160, 135); g.lineTo(185, 110); g.stroke(); // 手臂
+    circle(146, 108, 13, '#fff'); g.strokeStyle = '#222'; g.lineWidth = 3; g.beginPath(); g.arc(146, 108, 13, 0, 7); g.stroke();
+    circle(150, 104, 2, '#222');
+    g.strokeStyle = '#e74c3c'; g.lineWidth = 4; g.beginPath(); g.moveTo(135, 200); g.lineTo(215, 185); g.stroke(); // 雪板
+    g.strokeStyle = 'rgba(34,34,34,.35)'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(60, 90); g.lineTo(100, 70); g.moveTo(70, 110); g.lineTo(110, 90); g.stroke();
+  } else if (appIdx === 4) { // Flappy Bird：像素小鸟 + 绿管
+    g.fillStyle = '#7ee0a3'; g.fillRect(0, 0, 256, 252);
+    circle(60, 50, 18, '#fff'); circle(90, 42, 12, '#fff');
+    g.fillStyle = '#2ed573'; g.fillRect(180, 0, 46, 95); g.fillRect(172, 80, 62, 18);
+    g.fillRect(180, 165, 46, 87); g.fillRect(172, 150, 62, 18);
+    g.strokeStyle = '#1e8449'; g.lineWidth = 3; g.strokeRect(180, 0, 46, 95); g.strokeRect(180, 165, 46, 87);
+    circle(85, 130, 24, '#ffd32a'); g.strokeStyle = '#e67e22'; g.lineWidth = 3; g.beginPath(); g.arc(85, 130, 24, 0, 7); g.stroke();
+    g.fillStyle = '#fff'; circle(92, 122, 8, '#fff'); circle(94, 122, 3, '#222');
+    g.fillStyle = '#ff9f43'; g.beginPath(); g.moveTo(107, 128); g.lineTo(122, 134); g.lineTo(107, 140); g.closePath(); g.fill();
+    g.fillStyle = '#f5a623'; g.beginPath(); g.ellipse(72, 140, 12, 7, -0.5, 0, 7); g.fill();
+  } else if (appIdx === 5) { // Mini Geometry Dash：几何方块 + 尖刺
+    g.fillStyle = '#2b1a4a'; g.fillRect(0, 0, 256, 252);
+    g.fillStyle = '#fff'; for (const [sx, sy] of [[30, 40], [90, 25], [150, 55], [210, 30], [60, 80], [190, 90]]) circle(sx, sy, 2, '#fff');
+    g.fillStyle = '#3a2a6a'; g.fillRect(0, 210, 256, 42);
+    g.fillStyle = '#00ffcc';
+    for (const tx of [150, 175, 200, 225]) { g.beginPath(); g.moveTo(tx, 210); g.lineTo(tx + 12, 178); g.lineTo(tx + 24, 210); g.closePath(); g.fill(); }
+    g.fillStyle = '#00ffcc'; g.fillRect(70, 160, 50, 50); g.strokeStyle = '#fff'; g.lineWidth = 3; g.strokeRect(70, 160, 50, 50);
+    g.fillStyle = '#222'; g.fillRect(82, 176, 8, 10); g.fillRect(100, 176, 8, 10);
+    g.fillRect(86, 194, 20, 5);
+    g.fillStyle = 'rgba(0,255,204,.5)'; for (let i = 0; i < 3; i++) g.fillRect(30 + i * 12, 172 + i * 6, 8, 8);
+  } else if (appIdx === 7) { // 雪舞世界：单板滑雪者 + 雪山 + 雪花
+    g.fillStyle = '#bfe8ff'; g.fillRect(0, 0, 256, 252);
+    g.fillStyle = '#fff';
+    g.beginPath(); g.moveTo(0, 252); g.lineTo(70, 90); g.lineTo(140, 252); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(110, 252); g.lineTo(190, 60); g.lineTo(256, 252); g.closePath(); g.fill();
+    g.fillStyle = '#8ec9ee'; g.beginPath(); g.moveTo(190, 60); g.lineTo(210, 100); g.lineTo(170, 100); g.closePath(); g.fill();
+    for (const [sx, sy, sr] of [[30, 40, 3], [90, 25, 2], [150, 45, 3], [210, 30, 2], [60, 90, 2], [230, 80, 3], [120, 70, 2]]) circle(sx, sy, sr, '#fff');
+    g.strokeStyle = '#22d3ee'; g.lineWidth = 7; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(70, 205); g.lineTo(185, 185); g.stroke(); // 单板
+    g.strokeStyle = '#222'; g.lineWidth = 5;
+    g.beginPath(); g.moveTo(105, 150); g.lineTo(125, 190); g.moveTo(140, 155); g.lineTo(150, 192); g.stroke(); // 双腿
+    g.beginPath(); g.moveTo(115, 120); g.lineTo(122, 155); g.stroke(); // 身体（橙色外套）
+    g.strokeStyle = '#ff6b35'; g.lineWidth = 9; g.beginPath(); g.moveTo(116, 122); g.lineTo(121, 152); g.stroke();
+    g.beginPath(); g.moveTo(118, 130); g.lineTo(90, 115); g.moveTo(118, 130); g.lineTo(145, 110); g.stroke(); // 手臂
+    circle(112, 108, 12, '#fff'); g.strokeStyle = '#222'; g.lineWidth = 3; g.beginPath(); g.arc(112, 108, 12, 0, 7); g.stroke();
+    g.fillStyle = '#ff6b35'; g.fillRect(100, 96, 24, 6); // 头盔
+    g.strokeStyle = '#fff'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(60, 220); g.lineTo(90, 215); g.moveTo(55, 232); g.lineTo(85, 228); g.stroke(); // 板尾雪雾
+  } else if (appIdx === 1) { // WazaLab：空手道踢击剪影 + 红腰带 + 红日
+    g.fillStyle = '#f5efe0'; g.fillRect(0, 0, 256, 252);
+    circle(128, 80, 52, '#e74c3c');
+    g.strokeStyle = '#222'; g.lineWidth = 6; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(128, 130); g.lineTo(128, 190); g.stroke(); // 躯干
+    circle(128, 112, 14, '#222'); // 头
+    g.beginPath(); g.moveTo(128, 145); g.lineTo(95, 125); g.moveTo(128, 145); g.lineTo(160, 120); g.stroke(); // 手臂
+    g.beginPath(); g.moveTo(128, 190); g.lineTo(105, 225); g.moveTo(128, 190); g.lineTo(185, 165); g.stroke(); // 腿：一腿横踢
+    g.strokeStyle = '#a31616'; g.lineWidth = 7; g.beginPath(); g.moveTo(118, 168); g.lineTo(138, 168); g.stroke(); // 红腰带
+    g.strokeStyle = 'rgba(34,34,34,.3)'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(195, 150); g.lineTo(215, 140); g.moveTo(200, 170); g.lineTo(220, 160); g.stroke();
+  } else if (appIdx === 3) { // FormBuddy：动作骨架 + 分析曲线
+    g.fillStyle = '#16233d'; g.fillRect(0, 0, 256, 252);
+    g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = 1;
+    for (let x = 0; x < 256; x += 32) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 252); g.stroke(); }
+    for (let y = 0; y < 252; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke(); }
+    g.strokeStyle = '#ff9f43'; g.lineWidth = 3; g.beginPath();
+    for (let x = 0; x <= 256; x += 8) { const y = 200 - Math.sin(x / 40) * 30 - x * 0.15; x === 0 ? g.moveTo(x, y) : g.lineTo(x, y); }
+    g.stroke();
+    g.strokeStyle = '#fff'; g.lineWidth = 4; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(128, 90); g.lineTo(128, 150); g.stroke();
+    g.beginPath(); g.moveTo(128, 105); g.lineTo(95, 130); g.moveTo(128, 105); g.lineTo(165, 85); g.stroke();
+    g.beginPath(); g.moveTo(128, 150); g.lineTo(100, 200); g.moveTo(128, 150); g.lineTo(160, 195); g.stroke();
+    circle(128, 72, 14, '#fff');
+    for (const [jx, jy] of [[128, 90], [95, 130], [165, 85], [128, 150], [100, 200], [160, 195]]) circle(jx, jy, 5, '#ffd32a');
+    g.fillStyle = '#2ed573'; g.fillRect(20, 210, 18, 22); g.fillRect(44, 218, 18, 14); g.fillRect(68, 224, 18, 8);
+  } else { // 毛豆琴音：钢琴键 + 音符 + 计时
+    g.fillStyle = '#fdf6e3'; g.fillRect(0, 0, 256, 252);
+    g.fillStyle = '#222'; g.font = 'bold 44px sans-serif'; g.textAlign = 'center';
+    g.fillText('♪', 50, 80); g.fillText('♫', 200, 60); g.fillText('♪', 150, 110);
+    circle(128, 110, 42, '#fff'); g.strokeStyle = '#e67e22'; g.lineWidth = 5; g.beginPath(); g.arc(128, 110, 42, 0, 7); g.stroke();
+    g.fillStyle = '#e67e22'; g.font = 'bold 26px sans-serif'; g.fillText('00:00', 128, 118);
+    g.fillStyle = '#fff'; g.fillRect(0, 190, 256, 62);
+    g.strokeStyle = '#222'; g.lineWidth = 2;
+    for (let i = 0; i < 8; i++) g.strokeRect(i * 32, 190, 32, 62);
+    g.fillStyle = '#222';
+    for (const kx of [20, 52, 116, 148, 180]) g.fillRect(kx, 190, 20, 38);
+  }
+  g.restore();
+  // 标题带：主标题（当前语言）+ 另一语言小字 + 进入提示
+  g.fillStyle = 'rgba(10,16,32,.78)'; g.fillRect(0, 252, 256, 108);
+  g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 3; g.strokeRect(4, 256, 248, 100);
+  const main = lang === 'zh' ? app.zh : app.en;
+  const other = lang === 'zh' ? app.en : app.zh;
   g.fillStyle = '#fff'; g.textAlign = 'center';
-  let fs = 40;
-  g.font = `bold ${fs}px sans-serif`;
-  while (g.measureText(title).width > 236 && fs > 20) { fs -= 2; g.font = `bold ${fs}px sans-serif`; }
-  g.fillText(title, 128, 120);
-  g.font = '26px sans-serif'; g.fillText(sub, 128, 170);
+  let fs = 34; g.font = `bold ${fs}px sans-serif`;
+  while (g.measureText(main).width > 232 && fs > 18) { fs -= 2; g.font = `bold ${fs}px sans-serif`; }
+  g.fillText(main, 128, 292);
+  g.font = '21px sans-serif'; g.fillStyle = '#ffd32a'; g.fillText(other, 128, 320);
+  g.font = 'bold 19px sans-serif'; g.fillStyle = '#fff';
+  g.fillText(lang === 'zh' ? '靠近按 E 进入 →' : 'Walk up, press E →', 128, 346);
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return tex;
 }
 
@@ -778,24 +899,27 @@ for (const [lx, lz] of [[-1.55, -0.6], [1.55, -0.6], [-1.55, 0.6], [1.55, 0.6]])
 }
 const gRug = new THREE.Mesh(new THREE.PlaneGeometry(8, 5), mat(0xa31616));
 gRug.rotation.x = -Math.PI / 2; gRug.position.set(500, 0.06, -3); scene.add(gRug);
-// 4 张小游戏海报：两侧墙各 2 张，一游一张，带木框
+// 5 张生动海报：两侧墙各 2 张 + 西墙南端 1 张雪舞世界，一游一张，带木框，可靠近进入
 const gamePosters = [
-  { title: '打砖块', sub: 'Breakout', bg: '#4da3ff', side: -1, z: -5 },
-  { title: 'Sketchy Skier', sub: '滑雪涂鸦', bg: '#ff6b6b', side: -1, z: 0.5 },
-  { title: 'Flappy Bird', sub: '像素小鸟', bg: '#f5a623', side: 1, z: -5 },
-  { title: 'Mini Geometry Dash', sub: '几何冲刺', bg: '#00b894', side: 1, z: 0.5 },
+  { appIdx: 0, side: -1, z: -5 },
+  { appIdx: 2, side: -1, z: 0.5 },
+  { appIdx: 7, side: -1, z: 5.5 },
+  { appIdx: 4, side: 1, z: -5 },
+  { appIdx: 5, side: 1, z: 0.5 },
 ];
 for (const p of gamePosters) {
   const px = 500 + p.side * 11;
   const frame = new THREE.Mesh(new THREE.BoxGeometry(0.12, 3.7, 2.7), mat(0x3a2c1c));
   frame.position.set(px - p.side * 0.21, 3, p.z); scene.add(frame);
-  const poster = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.4), new THREE.MeshBasicMaterial({ map: makePosterTexture(p.title, p.sub, p.bg) }));
+  const pMat = new THREE.MeshBasicMaterial({ map: makePosterArt(p.appIdx) });
+  signMats.push({ mat: pMat, redraw: () => makePosterArt(p.appIdx) });
+  const poster = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.4), pMat);
   poster.rotation.y = p.side < 0 ? Math.PI / 2 : -Math.PI / 2;
   poster.position.set(px - p.side * 0.28, 3, p.z); scene.add(poster);
 }
 
 // ---- 道馆室内细化：榻榻米拼缝 + 木桩 + 沙袋 + 礼字挂轴 ----
-// ---- 道馆室内：榻榻米 + 桌子上的应用卡片 + “道”字挂轴 ----
+// ---- 道馆室内：榻榻米 + 两张矮桌 + “道”字挂轴 ----
 buildRoom(560, 0, 22, 16, 0xd9cfa8, 0xe8e0cc);
 // 榻榻米拼缝：地面上压一层细线格（8 列 × 4 行），不改碰撞与互动
 for (const sx of [551.75, 554.5, 557.25, 560, 562.75, 565.5, 568.25]) {
@@ -824,29 +948,27 @@ for (const [px, pz] of [[-8, -5], [8, -5], [-8, 5], [8, 5]]) {
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 6, 10), mat(0x6b4a2f));
   post.position.set(560 + px, 3, pz); scene.add(post);
 }
-function makeCardTexture(app) {
-  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 360;
-  const g = cv.getContext('2d');
-  g.fillStyle = '#f5efe0'; g.fillRect(0, 0, 256, 360);
-  g.strokeStyle = '#8a7a5a'; g.lineWidth = 8; g.strokeRect(8, 8, 240, 344);
-  g.fillStyle = '#222'; g.textAlign = 'center';
-  g.font = 'bold 44px sans-serif'; g.fillText(app.zh, 128, 90);
-  g.font = '26px sans-serif'; g.fillStyle = '#555'; g.fillText(app.en, 128, 140);
-  g.font = 'bold 30px sans-serif'; g.fillStyle = '#a31616'; g.fillText('进入 →', 128, 300);
-  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return tex;
-}
-function dojoTable(x, app) {
+function dojoTable(x) {
   const top = new THREE.Mesh(new THREE.BoxGeometry(3, 0.15, 1.2), mat(0x6b4a2f));
   top.position.set(x, 0.55, -2); scene.add(top);
   for (const [lx, lz] of [[-1.3, -0.45], [1.3, -0.45], [-1.3, 0.45], [1.3, 0.45]]) {
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.55, 0.15), mat(0x6b4a2f));
     leg.position.set(x + lx, 0.27, -2 + lz); scene.add(leg);
   }
-  const card = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.2), new THREE.MeshBasicMaterial({ map: makeCardTexture(app), side: THREE.DoubleSide }));
-  card.position.set(x, 1.75, -2); scene.add(card);
 }
-dojoTable(556, APPS[1]);
-dojoTable(564, APPS[3]);
+dojoTable(556);
+dojoTable(564);
+// 道馆墙上海报：桌子上的旧卡片已撤，改走两侧墙上海报进入（西墙 WazaLab、东墙 FormBuddy）
+for (const p of [{ appIdx: 1, side: -1 }, { appIdx: 3, side: 1 }]) {
+  const px = 560 + p.side * 11;
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.12, 3.7, 2.7), mat(0x3a2c1c));
+  frame.position.set(px - p.side * 0.21, 3, -4); scene.add(frame);
+  const pMat = new THREE.MeshBasicMaterial({ map: makePosterArt(p.appIdx) });
+  signMats.push({ mat: pMat, redraw: () => makePosterArt(p.appIdx) });
+  const poster = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.4), pMat);
+  poster.rotation.y = p.side < 0 ? Math.PI / 2 : -Math.PI / 2;
+  poster.position.set(px - p.side * 0.28, 3, -4); scene.add(poster);
+}
 function makeScrollTexture(ch, sub) {
   const cv = document.createElement('canvas'); cv.width = 256; cv.height = 384;
   const g = cv.getContext('2d');
@@ -939,6 +1061,18 @@ benchPad.position.set(620, 0.72, 0.8); scene.add(benchPad);
 for (const bx of [-0.9, 0.9]) {
   const bleg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.55, 0.7), mat(0x3a2c1c));
   bleg.position.set(620 + bx, 0.28, 0.8); scene.add(bleg);
+}
+// 琴房墙上海报：东墙毛豆琴音海报（三角琴与琴凳保留作装饰；琴凳互动点同时保留，
+// 同一应用、同一去向，不冲突，玩家走近海报或琴凳都能进入）
+{
+  const px = 620 + 11;
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.12, 3.7, 2.7), mat(0x3a2c1c));
+  frame.position.set(px - 0.21, 3, -2); scene.add(frame);
+  const pMat = new THREE.MeshBasicMaterial({ map: makePosterArt(6) });
+  signMats.push({ mat: pMat, redraw: () => makePosterArt(6) });
+  const poster = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.4), pMat);
+  poster.rotation.y = -Math.PI / 2;
+  poster.position.set(px - 0.28, 3, -2); scene.add(poster);
 }
 
 /* ============ 移动 / 碰撞 / 传送门 ============ */
@@ -1075,7 +1209,7 @@ function loop(now) {
   collide(player);
   camera.position.copy(player);
   camera.rotation.y = yaw; camera.rotation.x = pitch;
-  // 互动点（门、电视、卡片、琴凳、出口）
+  // 互动点（门、电视、海报、琴凳、出口）
   if (teleportGrace > 0) teleportGrace -= dt;
   currentAct = null;
   if (teleportGrace <= 0) {
@@ -1130,7 +1264,7 @@ function applyLang() {
   cl.innerHTML = '<b>' + t.classic + '</b>';
   list.appendChild(cl);
   for (const s of signMats) {
-    s.mat.map = s.castle ? makeCastleSign() : s.tv ? makeTVTexture() : makeSignTexture(s.app);
+    s.mat.map = s.redraw ? s.redraw() : s.castle ? makeCastleSign() : s.tv ? makeTVTexture() : makeSignTexture(s.app);
     s.mat.needsUpdate = true;
   }
 }
@@ -1156,7 +1290,7 @@ document.getElementById('menuClose').addEventListener('click', () => {
   document.getElementById('menu').classList.remove('show');
   if (started && !isTouch) canvas.requestPointerLock();
 });
-const GAME_IDX = [0, 2, 4, 5];
+const GAME_IDX = [0, 2, 4, 5, 7];
 function openGamePanel() {
   const list = document.getElementById('selectList');
   list.innerHTML = '';
