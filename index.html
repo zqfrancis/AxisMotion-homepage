@@ -189,18 +189,22 @@ const APPS = [
     zhDesc: '3D 单板滑雪：无尽下坡，躲树穿旗门',
     enDesc: '3D snowboarding: endless downhill, dodge trees, ride the gates',
     url: 'https://zqfrancis.github.io/SnowDanceWorld/', color: 0x22d3ee },
+  { zh: '海天雪线', en: 'Sea-to-Sky Snowline',
+    zhDesc: '大温滑雪管家：出发判决、逐小时天气、上山路况与打包清单',
+    enDesc: 'Vancouver ski butler: go/no-go verdict, hourly weather, road conditions and packing list',
+    url: 'https://zqfrancis.github.io/HaiTianXueXian/', color: 0x5eead4 },
 ];
 
 const T = {
-  zh: { subtitle: '第一人称世界：三间房子，推门进去各有天地',
+  zh: { subtitle: '第一人称世界：四间房子，推门进去各有天地',
     menu: '应用列表', hint: '点击画面锁定鼠标 · WASD 移动 · Shift 加速 · 靠近门口按 E',
-    start: '欢迎来到 AxisMotion 的世界。<br>现在有三间可以走进去的房子：游戏屋、道馆、琴房。<br>推门进去，里面各有天地。<br>往北走，还有魔法城堡、跨谷高架桥和一列会跑的魔法列车，湖在东边，群山在远处。',
+    start: '欢迎来到 AxisMotion 的世界。<br>现在有四间可以走进去的房子：游戏屋、道馆、琴房、工具屋。<br>推门进去，里面各有天地。<br>往北走，还有魔法城堡、跨谷高架桥和一列会跑的魔法列车，湖在东边，群山在远处。',
     startBtn: '进入世界', startMenu: '不想走路？直接看应用列表',
     menuTitle: 'AxisMotion 应用列表', classic: '经典列表版（原来那页）', close: '回到世界',
     selectTitle: '选个游戏玩', nGl: '这个浏览器不支持 3D，试试换个现代浏览器，或去看经典列表版。' },
-  en: { subtitle: 'First-person world: three houses you can actually walk into',
+  en: { subtitle: 'First-person world: four houses you can actually walk into',
     menu: 'App list', hint: 'Click to lock mouse · WASD to move · Shift to run · Press E near a door',
-    start: 'Welcome to the AxisMotion world.<br>Three houses are open now: the Game House, the Dojo, and the Piano Room.<br>Push the door and step inside.<br>Head north for the magic castle, the viaduct and a moving magic train, with a lake to the east and mountains all around.',
+    start: 'Welcome to the AxisMotion world.<br>Four houses are open now: the Game House, the Dojo, the Piano Room, and the Tool House.<br>Push the door and step inside.<br>Head north for the magic castle, the viaduct and a moving magic train, with a lake to the east and mountains all around.',
     startBtn: 'Enter the world', startMenu: 'Skip walking, show the app list',
     menuTitle: 'AxisMotion apps', classic: 'Classic list page', close: 'Back to the world',
     selectTitle: 'Pick a game', nGl: 'This browser does not support 3D. Try a modern browser, or use the classic list page.' },
@@ -268,7 +272,7 @@ path.position.set(0, 0.03, -7);
 path.receiveShadow = true;
 scene.add(path);
 
-/* 三间房子：沿 z=-28 一字排开，门朝广场(+Z)，都能推门走进去 */
+/* 四间房子：沿 z=-28 一字排开，门朝广场(+Z)，都能推门走进去 */
 const HOUSES = [];
 const signMats = []; // 语言切换时重画
 function makeSignTexture(app) {
@@ -326,6 +330,7 @@ function buildHouse(h, x) {
 buildHouse({ kind: 'game', zh: '游戏屋', en: 'Game House', roof: 0x4da3ff, body: 0xfff6e8, door: 0x5a3a1e }, -20);
 buildHouse({ kind: 'dojo', zh: '道馆', en: 'Dojo', roof: 0x3a3f4a, body: 0xf5f0e6, door: 0xa31616 }, 0);
 buildHouse({ kind: 'piano', zh: '琴房', en: 'Piano Room', roof: 0x6b5a8a, body: 0xfdf8ec, door: 0x3a2c1c }, 20);
+buildHouse({ kind: 'tool', zh: '工具屋', en: 'Tool House', roof: 0x2a9d8f, body: 0xf5f0e6, door: 0x3a2c1c }, 40);
 // 两侧小路
 for (const px of [-20, 20]) {
   const side = new THREE.Mesh(new THREE.PlaneGeometry(5, 34), mat(0xcbb27f));
@@ -651,13 +656,14 @@ function updateTrain(dt) {
 }
 
 /* ============ 三间房子的室内 ============ */
-let area = 'outside'; // 'outside' | 'game' | 'dojo' | 'piano'
+let area = 'outside'; // 'outside' | 'game' | 'dojo' | 'piano' | 'tool'
 const ROOMS = {
   game: { cx: 500, cz: 0, hw: 10.2, hd: 7.2, boxes: [{ x: 500, z: -7.2, hx: 3.5, hz: 1.0 }, { x: 500, z: 0.5, hx: 2.8, hz: 1.4 }] },
   dojo: { cx: 560, cz: 0, hw: 10.2, hd: 7.2, boxes: [{ x: 556, z: -2, hx: 1.8, hz: 0.9 }, { x: 564, z: -2, hx: 1.8, hz: 0.9 }] },
   piano: { cx: 620, cz: 0, hw: 10.2, hd: 7.2, boxes: [{ x: 620, z: -3, hx: 2.1, hz: 3.1 }, { x: 620, z: 0.8, hx: 1.4, hz: 0.7 }] },
+  tool: { cx: 680, cz: 0, hw: 10.2, hd: 7.2, boxes: [{ x: 680, z: -5.5, hx: 2.3, hz: 0.9 }] },
 };
-const HOUSE_X = { game: -20, dojo: 0, piano: 20 };
+const HOUSE_X = { game: -20, dojo: 0, piano: 20, tool: 40 };
 function enterRoom(kind) {
   area = kind;
   const r = ROOMS[kind];
@@ -694,6 +700,12 @@ function interactables() {
       { x: 552, z: -4, r: 3, zh: '打开 WazaLab', en: 'Open WazaLab', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[1].url },
       { x: 568, z: -4, r: 3, zh: '打开 FormBuddy', en: 'Open FormBuddy', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[3].url },
       { x: 560, z: 7.0, r: 2.2, zh: '从门口出去', en: 'Exit through the door', btnZh: '出去', btnEn: 'Exit', run: exitRoom },
+    ];
+  }
+  if (area === 'tool') {
+    return [
+      { x: 688, z: -2, r: 3, zh: '打开海天雪线', en: 'Open Sea-to-Sky Snowline', btnZh: '进入', btnEn: 'Enter', run: () => window.location.href = APPS[8].url },
+      { x: 680, z: 7.0, r: 2.2, zh: '从门口出去', en: 'Exit through the door', btnZh: '出去', btnEn: 'Exit', run: exitRoom },
     ];
   }
   return [
@@ -738,7 +750,7 @@ function makePosterArt(appIdx) {
   const cv = document.createElement('canvas'); cv.width = 256; cv.height = 360;
   const g = cv.getContext('2d');
   const grad = g.createLinearGradient(0, 0, 0, 360);
-  const cols = ['#4da3ff', '#ffd32a', '#2ed573', '#ff9f43', '#22d3ee', '#00b894', '#e67e22', '#22d3ee'];
+  const cols = ['#4da3ff', '#ffd32a', '#2ed573', '#ff9f43', '#22d3ee', '#00b894', '#e67e22', '#22d3ee', '#5eead4'];
   grad.addColorStop(0, '#1c2733'); grad.addColorStop(0.7, cols[appIdx] || '#4da3ff'); grad.addColorStop(1, '#10131f');
   g.fillStyle = grad; g.fillRect(0, 0, 256, 360);
   g.save();
@@ -827,6 +839,16 @@ function makePosterArt(appIdx) {
     circle(128, 72, 14, '#fff');
     for (const [jx, jy] of [[128, 90], [95, 130], [165, 85], [128, 150], [100, 200], [160, 195]]) circle(jx, jy, 5, '#ffd32a');
     g.fillStyle = '#2ed573'; g.fillRect(20, 210, 18, 22); g.fillRect(44, 218, 18, 14); g.fillRect(68, 224, 18, 8);
+  } else if (appIdx === 8) { // 海天雪线：雪山 + 雪线虚线 + 雪花
+    g.fillStyle = '#8ec9ee'; g.fillRect(0, 0, 256, 252);
+    circle(208, 42, 20, '#ffd32a');
+    g.fillStyle = '#fff';
+    g.beginPath(); g.moveTo(0, 252); g.lineTo(70, 90); g.lineTo(140, 252); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(110, 252); g.lineTo(190, 60); g.lineTo(256, 252); g.closePath(); g.fill();
+    g.fillStyle = '#8ec9ee'; g.beginPath(); g.moveTo(190, 60); g.lineTo(210, 100); g.lineTo(170, 100); g.closePath(); g.fill();
+    g.strokeStyle = '#ff6b35'; g.lineWidth = 4; g.setLineDash([10, 8]);
+    g.beginPath(); g.moveTo(0, 150); g.lineTo(256, 150); g.stroke(); g.setLineDash([]);
+    for (const [sx, sy, sr] of [[30, 40, 3], [90, 25, 2], [150, 45, 3], [210, 30, 2], [60, 90, 2], [230, 80, 3], [120, 70, 2]]) circle(sx, sy, sr, '#fff');
   } else { // 毛豆琴音：钢琴键 + 音符 + 计时
     g.fillStyle = '#fdf6e3'; g.fillRect(0, 0, 256, 252);
     g.fillStyle = '#222'; g.font = 'bold 44px sans-serif'; g.textAlign = 'center';
@@ -1070,6 +1092,38 @@ for (const bx of [-0.9, 0.9]) {
   frame.position.set(px - 0.21, 3, -2); scene.add(frame);
   const pMat = new THREE.MeshBasicMaterial({ map: makePosterArt(6) });
   signMats.push({ mat: pMat, redraw: () => makePosterArt(6) });
+  const poster = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.4), pMat);
+  poster.rotation.y = -Math.PI / 2;
+  poster.position.set(px - 0.28, 3, -2); scene.add(poster);
+}
+
+// ---- 工具屋室内：工作台 + 雪板架 + 海天雪线海报 ----
+buildRoom(680, 0, 22, 16, 0x4a5a6a, 0xeef2f5);
+const tRug = new THREE.Mesh(new THREE.PlaneGeometry(8, 5), mat(0x2a9d8f));
+tRug.rotation.x = -Math.PI / 2; tRug.position.set(680, 0.06, -1); scene.add(tRug);
+// 工作台：北墙边，台面 + 四腿 + 雪蜡块 + 刮板
+const tBench = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.14, 1.6), mat(0x6b4a2f));
+tBench.position.set(680, 0.85, -5.5); scene.add(tBench);
+for (const [lx, lz] of [[-2.05, -0.65], [2.05, -0.65], [-2.05, 0.65], [2.05, 0.65]]) {
+  const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.85, 0.14), mat(0x3a2c1c));
+  leg.position.set(680 + lx, 0.42, -5.5 + lz); scene.add(leg);
+}
+const tWax = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.25, 0.5), mat(0xffd32a));
+tWax.position.set(678.5, 1.05, -5.5); scene.add(tWax);
+const tScraper = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.3), mat(0x22d3ee));
+tScraper.position.set(681.5, 0.95, -5.5); tScraper.rotation.y = 0.4; scene.add(tScraper);
+// 雪板架：西墙边两块雪板斜靠
+for (const [bz, c] of [[-2, 0x22d3ee], [0.5, 0xff6b35]]) {
+  const board = new THREE.Mesh(new THREE.BoxGeometry(0.12, 3.4, 0.7), mat(c));
+  board.position.set(669.6, 1.7, bz); board.rotation.z = 0.28; scene.add(board);
+}
+// 工具屋墙上海报：东墙海天雪线海报
+{
+  const px = 680 + 11;
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.12, 3.7, 2.7), mat(0x3a2c1c));
+  frame.position.set(px - 0.21, 3, -2); scene.add(frame);
+  const pMat = new THREE.MeshBasicMaterial({ map: makePosterArt(8) });
+  signMats.push({ mat: pMat, redraw: () => makePosterArt(8) });
   const poster = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.4), pMat);
   poster.rotation.y = -Math.PI / 2;
   poster.position.set(px - 0.28, 3, -2); scene.add(poster);
