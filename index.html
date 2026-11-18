@@ -745,6 +745,14 @@ function makeTVTexture() {
 }
 // 生动海报：上半是该游戏的标志性画面（Canvas 手绘），下半是双语标题带。
 // 语言切换时由 signMats 的 redraw 回调重绘（见 applyLang）。
+// 海天雪线海报用真实 logo 图（与世界同源，无跨域问题）；加载完后重绘工具屋海报
+const logoImg = new Image();
+logoImg.src = 'https://zqfrancis.github.io/HaiTianXueXian/logo.jpg';
+logoImg.onload = () => {
+  for (const s of signMats) {
+    if (s.logoPoster) { s.mat.map = makePosterArt(8); s.mat.needsUpdate = true; }
+  }
+};
 function makePosterArt(appIdx) {
   const app = APPS[appIdx];
   const cv = document.createElement('canvas'); cv.width = 256; cv.height = 360;
@@ -839,16 +847,22 @@ function makePosterArt(appIdx) {
     circle(128, 72, 14, '#fff');
     for (const [jx, jy] of [[128, 90], [95, 130], [165, 85], [128, 150], [100, 200], [160, 195]]) circle(jx, jy, 5, '#ffd32a');
     g.fillStyle = '#2ed573'; g.fillRect(20, 210, 18, 22); g.fillRect(44, 218, 18, 14); g.fillRect(68, 224, 18, 8);
-  } else if (appIdx === 8) { // 海天雪线：雪山 + 雪线虚线 + 雪花
-    g.fillStyle = '#8ec9ee'; g.fillRect(0, 0, 256, 252);
-    circle(208, 42, 20, '#ffd32a');
-    g.fillStyle = '#fff';
-    g.beginPath(); g.moveTo(0, 252); g.lineTo(70, 90); g.lineTo(140, 252); g.closePath(); g.fill();
-    g.beginPath(); g.moveTo(110, 252); g.lineTo(190, 60); g.lineTo(256, 252); g.closePath(); g.fill();
-    g.fillStyle = '#8ec9ee'; g.beginPath(); g.moveTo(190, 60); g.lineTo(210, 100); g.lineTo(170, 100); g.closePath(); g.fill();
-    g.strokeStyle = '#ff6b35'; g.lineWidth = 4; g.setLineDash([10, 8]);
-    g.beginPath(); g.moveTo(0, 150); g.lineTo(256, 150); g.stroke(); g.setLineDash([]);
-    for (const [sx, sy, sr] of [[30, 40, 3], [90, 25, 2], [150, 45, 3], [210, 30, 2], [60, 90, 2], [230, 80, 3], [120, 70, 2]]) circle(sx, sy, sr, '#fff');
+  } else if (appIdx === 8) { // 海天雪线：真实 logo 图（等比放入，底色与 logo 同色 #14385c）
+    g.fillStyle = '#14385c'; g.fillRect(0, 0, 256, 252);
+    if (logoImg.complete && logoImg.naturalWidth) {
+      const ih = 256 * logoImg.naturalHeight / logoImg.naturalWidth;
+      g.drawImage(logoImg, 0, (252 - ih) / 2, 256, ih);
+    } else { // 未加载完时的占位：雪山 + 雪线虚线 + 雪花，加载完后 onload 重绘
+      g.fillStyle = '#8ec9ee'; g.fillRect(0, 0, 256, 252);
+      circle(208, 42, 20, '#ffd32a');
+      g.fillStyle = '#fff';
+      g.beginPath(); g.moveTo(0, 252); g.lineTo(70, 90); g.lineTo(140, 252); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(110, 252); g.lineTo(190, 60); g.lineTo(256, 252); g.closePath(); g.fill();
+      g.fillStyle = '#8ec9ee'; g.beginPath(); g.moveTo(190, 60); g.lineTo(210, 100); g.lineTo(170, 100); g.closePath(); g.fill();
+      g.strokeStyle = '#ff6b35'; g.lineWidth = 4; g.setLineDash([10, 8]);
+      g.beginPath(); g.moveTo(0, 150); g.lineTo(256, 150); g.stroke(); g.setLineDash([]);
+      for (const [sx, sy, sr] of [[30, 40, 3], [90, 25, 2], [150, 45, 3], [210, 30, 2], [60, 90, 2], [230, 80, 3], [120, 70, 2]]) circle(sx, sy, sr, '#fff');
+    }
   } else { // 毛豆琴音：钢琴键 + 音符 + 计时
     g.fillStyle = '#fdf6e3'; g.fillRect(0, 0, 256, 252);
     g.fillStyle = '#222'; g.font = 'bold 44px sans-serif'; g.textAlign = 'center';
@@ -1123,7 +1137,7 @@ for (const [bz, c] of [[-2, 0x22d3ee], [0.5, 0xff6b35]]) {
   const frame = new THREE.Mesh(new THREE.BoxGeometry(0.12, 3.7, 2.7), mat(0x3a2c1c));
   frame.position.set(px - 0.21, 3, -2); scene.add(frame);
   const pMat = new THREE.MeshBasicMaterial({ map: makePosterArt(8) });
-  signMats.push({ mat: pMat, redraw: () => makePosterArt(8) });
+  signMats.push({ mat: pMat, redraw: () => makePosterArt(8), logoPoster: true });
   const poster = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.4), pMat);
   poster.rotation.y = -Math.PI / 2;
   poster.position.set(px - 0.28, 3, -2); scene.add(poster);
